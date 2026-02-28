@@ -94,3 +94,21 @@ If you only want to test without opening browser:
 cd "/Users/thomassoderberg/Desktop/recompute it web"
 WP_ADMIN_URL="https://your-domain/wp-admin" NO_OPEN=1 ./scripts/release_theme.sh
 ```
+
+## 11) Automatic deploy from GitHub to Hostinger
+This project includes:
+`/.github/workflows/deploy-theme.yml`
+
+It auto-deploys only the custom theme on push to `main`.
+
+Required repository secrets:
+- `HOSTINGER_HOST` (SSH host/IP)
+- `HOSTINGER_PORT` (SSH port, e.g. `65002`)
+- `HOSTINGER_USER` (SSH username)
+- `HOSTINGER_SSH_KEY` (private key matching key added in Hostinger SSH Access)
+- `HOSTINGER_THEME_PATH` (absolute server path to theme dir, e.g. `/home/u123456789/domains/example.com/public_html/wp-content/themes/recompute-repair`)
+
+After secrets are set:
+1. Push changes to `main`
+2. Open `GitHub -> Actions -> Deploy WordPress Theme`
+3. Verify job succeeds
