@@ -1,0 +1,28 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Env / local runtime
+.env
+*.log
+dist/
+tmp/
+
+# Docker runtime data
+mysql-data/
+
+# Keep repository focused on custom theme + project config
+Public HTML/*
+!Public HTML/wp-content/
+Public HTML/wp-content/*
+!Public HTML/wp-content/themes/
+Public HTML/wp-content/themes/*
+!Public HTML/wp-content/themes/recompute-repair/
+!Public HTML/wp-content/themes/recompute-repair/**
+
+# Keep deploy source assets if needed
+!Public HTML/data/
+!Public HTML/data/**
+!Public HTML/images/
+!Public HTML/images/**

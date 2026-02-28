@@ -1,0 +1,96 @@
+# Local WordPress Setup
+
+## 1) Prerequisites
+- Docker Desktop installed and running
+
+## 2) Start locally
+```bash
+cd "/Users/thomassoderberg/Desktop/recompute it web"
+cp .env.example .env
+docker compose up -d
+```
+
+## 3) Open the site
+- WordPress: http://localhost:8080
+- phpMyAdmin: http://localhost:8081
+
+Then run WordPress first-time install in browser.
+WordPress files will live in `/Users/thomassoderberg/Desktop/recompute it web/Public HTML`.
+
+## 4) Stop services
+```bash
+docker compose down
+```
+
+## 5) Reset all local data (optional)
+```bash
+docker compose down -v
+```
+
+This removes DB/WordPress volumes so you can reinstall from scratch.
+
+## 6) Rebuild workflow from existing site
+1. Run WordPress install in browser (`http://localhost:8080`).
+2. Go to Appearance -> Themes and activate `Recompute Repair`.
+3. Go to Settings -> Reading and set "Your homepage displays" to a static page.
+4. Create/select a page called "Home" as homepage (theme uses `front-page.php`).
+5. Verify that Tradera section loads from `Public HTML/data/tradera.json`.
+
+## 7) Theme location and what is already built
+- Theme path: `Public HTML/wp-content/themes/recompute-repair`
+- Included: custom hero, services, about/stats, contact footer, Tradera listing grid
+- Tradera source: `Public HTML/data/tradera.json` (same as your current static site)
+- Language selector: dropdown with `Svenska, English, العربية, Español, Suomi, Kurdî, Türkçe, Polski, Українська`
+- Language content is CMS-editable in:
+  - `Appearance -> Recompute CMS`
+  - Select language and edit all homepage text fields directly in admin.
+  - Defaults are prefilled with base translations and can be edited anytime.
+
+## 8) Add your two logos
+1. Open Appearance -> Customize -> Recompute Branding
+2. Upload light logo to `Header logo`
+3. Upload dark/alternate logo to `Footer logo`
+
+The theme will use these logo files in header and footer.
+
+## 9) If you choose pure HTML instead
+You can continue in pure HTML/JS and skip WordPress entirely.
+Your existing static assets are still in `Public HTML` and can run as before.
+
+## 10) Git + deploy workflow for theme
+Initialize Git once:
+```bash
+sudo xcodebuild -license
+cd "/Users/thomassoderberg/Desktop/recompute it web"
+git init
+```
+
+Package theme zip:
+```bash
+cd "/Users/thomassoderberg/Desktop/recompute it web"
+./scripts/package_theme.sh
+```
+
+Deploy zip to server over SSH/SCP:
+```bash
+cd "/Users/thomassoderberg/Desktop/recompute it web"
+DEPLOY_HOST="your-host" \
+DEPLOY_USER="your-user" \
+DEPLOY_PATH="/home/your-user/domains/your-domain/public_html/wp-content/themes" \
+./scripts/deploy_theme.sh
+```
+
+Then in WordPress admin:
+`Appearance -> Themes -> Add New -> Upload Theme`
+
+One-step release helper (package + open upload page):
+```bash
+cd "/Users/thomassoderberg/Desktop/recompute it web"
+WP_ADMIN_URL="https://your-domain/wp-admin" ./scripts/release_theme.sh
+```
+
+If you only want to test without opening browser:
+```bash
+cd "/Users/thomassoderberg/Desktop/recompute it web"
+WP_ADMIN_URL="https://your-domain/wp-admin" NO_OPEN=1 ./scripts/release_theme.sh
+```
