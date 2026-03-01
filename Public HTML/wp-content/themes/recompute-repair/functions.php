@@ -561,27 +561,36 @@ function recompute_cms_translations(): array
 	return is_array($stored) ? $stored : [];
 }
 
-function recompute_deepl_api_key(): string
+function recompute_openai_api_key(): string
 {
-	if (defined('RECOMPUTE_DEEPL_API_KEY') && is_string(RECOMPUTE_DEEPL_API_KEY)) {
-		return trim(RECOMPUTE_DEEPL_API_KEY);
+	if (defined('RECOMPUTE_OPENAI_API_KEY') && is_string(RECOMPUTE_OPENAI_API_KEY)) {
+		return trim(RECOMPUTE_OPENAI_API_KEY);
 	}
 
-	$env_key = getenv('RECOMPUTE_DEEPL_API_KEY');
+	$env_key = getenv('RECOMPUTE_OPENAI_API_KEY');
 	return is_string($env_key) ? trim($env_key) : '';
+}
+
+function recompute_openai_model(): string
+{
+	if (defined('RECOMPUTE_OPENAI_MODEL') && is_string(RECOMPUTE_OPENAI_MODEL) && trim(RECOMPUTE_OPENAI_MODEL) !== '') {
+		return trim(RECOMPUTE_OPENAI_MODEL);
+	}
+
+	return 'gpt-4o-mini';
 }
 
 function recompute_translation_targets(): array
 {
 	return [
-		'en' => 'EN',
-		'ar' => 'AR',
-		'es' => 'ES',
-		'fi' => 'FI',
-		'ku' => '', // DeepL does not currently support Kurdish.
-		'tr' => 'TR',
-		'pl' => 'PL',
-		'uk' => 'UK',
+		'en' => 'English',
+		'ar' => 'Arabic',
+		'es' => 'Spanish',
+		'fi' => 'Finnish',
+		'ku' => 'Kurdish (Kurmanji)',
+		'tr' => 'Turkish',
+		'pl' => 'Polish',
+		'uk' => 'Ukrainian',
 	];
 }
 
@@ -595,22 +604,39 @@ function recompute_schedule_auto_translation(): void
 	wp_schedule_single_event(time() + 20, 'recompute_auto_translate_event');
 }
 
-function recompute_deepl_translate_batch(array $texts, string $target_lang): array
+function recompute_openai_translate_batch(array $texts, string $target_lang_name): array
 {
-	$api_key = recompute_deepl_api_key();
+	$api_key = recompute_openai_api_key();
 	if ($api_key === '') {
 		return [];
 	}
 
-	$response = wp_remote_post('https://api-free.deepl.com/v2/translate', [
-		'timeout' => 40,
-		'body' => [
-			'auth_key' => $api_key,
-			'source_lang' => 'SV',
-			'target_lang' => $target_lang,
-			'preserve_formatting' => '1',
-			'text' => array_values($texts),
+	$payload = [
+		'model' => recompute_openai_model(),
+		'temperature' => 0.2,
+		'messages' => [
+			[
+				'role' => 'system',
+				'content' => 'You are a translation engine. Translate Swedish text to the requested target language. Return only valid minified JSON with this schema: {"translations":["..."]}. Keep order and length identical to input.',
+			],
+			[
+				'role' => 'user',
+				'content' => wp_json_encode([
+					'source_language' => 'Swedish',
+					'target_language' => $target_lang_name,
+					'texts' => array_values($texts),
+				], JSON_UNESCAPED_UNICODE),
+			],
 		],
+	];
+
+	$response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
+		'timeout' => 40,
+		'headers' => [
+			'Authorization' => 'Bearer ' . $api_key,
+			'Content-Type' => 'application/json',
+		],
+		'body' => wp_json_encode($payload, JSON_UNESCAPED_UNICODE),
 	]);
 
 	if (is_wp_error($response)) {
@@ -619,14 +645,24 @@ function recompute_deepl_translate_batch(array $texts, string $target_lang): arr
 
 	$status = (int) wp_remote_retrieve_response_code($response);
 	$body = json_decode((string) wp_remote_retrieve_body($response), true);
-	if ($status < 200 || $status >= 300 || !is_array($body) || !isset($body['translations']) || !is_array($body['translations'])) {
+	if ($status < 200 || $status >= 300 || !is_array($body) || !isset($body['choices'][0]['message']['content'])) {
+		return [];
+	}
+
+	$content = $body['choices'][0]['message']['content'];
+	if (!is_string($content) || trim($content) === '') {
+		return [];
+	}
+
+	$parsed = json_decode($content, true);
+	if (!is_array($parsed) || !isset($parsed['translations']) || !is_array($parsed['translations'])) {
 		return [];
 	}
 
 	$out = [];
-	foreach ($body['translations'] as $entry) {
-		if (is_array($entry) && isset($entry['text']) && is_scalar($entry['text'])) {
-			$out[] = (string) $entry['text'];
+	foreach ($parsed['translations'] as $entry) {
+		if (is_scalar($entry)) {
+			$out[] = (string) $entry;
 		}
 	}
 
@@ -634,7 +670,7 @@ function recompute_deepl_translate_batch(array $texts, string $target_lang): arr
 }
 
 add_action('recompute_auto_translate_event', function () {
-	$api_key = recompute_deepl_api_key();
+	$api_key = recompute_openai_api_key();
 	if ($api_key === '') {
 		return;
 	}
@@ -646,7 +682,7 @@ add_action('recompute_auto_translate_event', function () {
 	$source = array_merge($sv_defaults, $sv_cms);
 	$targets = recompute_translation_targets();
 
-	foreach ($targets as $lang_code => $deepl_target) {
+	foreach ($targets as $lang_code => $target_lang_name) {
 		if ($lang_code === 'sv') {
 			continue;
 		}
@@ -655,12 +691,6 @@ add_action('recompute_auto_translate_event', function () {
 		$lang_current = is_array($cms[$lang_code] ?? null) ? $cms[$lang_code] : [];
 		$merged = array_merge($lang_defaults, $lang_current);
 
-		// If provider doesn't support this language, keep existing content.
-		if ($deepl_target === '') {
-			$cms[$lang_code] = $merged;
-			continue;
-		}
-
 		$keys = array_keys($sv_defaults);
 		$texts = [];
 		foreach ($keys as $key) {
@@ -668,7 +698,7 @@ add_action('recompute_auto_translate_event', function () {
 			$texts[] = is_scalar($value) ? (string) $value : '';
 		}
 
-		$translated = recompute_deepl_translate_batch($texts, $deepl_target);
+		$translated = recompute_openai_translate_batch($texts, $target_lang_name);
 		if (count($translated) !== count($texts)) {
 			continue;
 		}
@@ -754,9 +784,9 @@ function recompute_render_cms_page(): void
 				esc_html__('Saved language content.', 'recompute-repair') .
 				'</p></div>';
 
-			if ($selected_lang === 'sv' && recompute_deepl_api_key() === '') {
+			if ($selected_lang === 'sv' && recompute_openai_api_key() === '') {
 				echo '<div class="notice notice-warning is-dismissible"><p>' .
-					esc_html__('Auto-translation is not active. Add RECOMPUTE_DEEPL_API_KEY in wp-config.php.', 'recompute-repair') .
+					esc_html__('Auto-translation is not active. Add RECOMPUTE_OPENAI_API_KEY in wp-config.php.', 'recompute-repair') .
 					'</p></div>';
 			}
 		}

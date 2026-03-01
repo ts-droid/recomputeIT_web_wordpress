@@ -117,11 +117,13 @@ After secrets are set:
 When you save language content in `Appearance -> Recompute CMS` with language `Svenska`,
 the theme schedules a background translation job (WP-Cron) for other supported languages.
 
-Requires DeepL API key in `wp-config.php`:
+Requires OpenAI API key in `wp-config.php`:
 ```php
-define('RECOMPUTE_DEEPL_API_KEY', 'your-deepl-api-key');
+define('RECOMPUTE_OPENAI_API_KEY', 'your-openai-api-key');
+// Optional:
+define('RECOMPUTE_OPENAI_MODEL', 'gpt-4o-mini');
 ```
 
 Notes:
 - The job runs shortly after save (on next page request).
-- Kurdish (`ku`) is currently left as-is because DeepL does not support it.
+- Kurdish (`ku`) is included via OpenAI translation.
