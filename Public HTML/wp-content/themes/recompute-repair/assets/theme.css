@@ -350,13 +350,14 @@ h3 {
 	font-weight: 700;
 }
 
-.tradera-brand img {
-	width: 1.22rem;
-	height: 1.22rem;
-	object-fit: contain;
-	background: transparent;
-	border-radius: 0;
-	padding: 0;
+.tradera-brand::before {
+	content: "";
+	width: 0.9rem;
+	height: 0.9rem;
+	flex: 0 0 0.9rem;
+	background: url("/images/marketing/tradera-symbol-black.png") center/contain no-repeat;
+	filter: grayscale(1) contrast(1.15);
+	opacity: 0.9;
 }
 
 .tradera-grid {
@@ -476,7 +477,7 @@ h3 {
 	}
 }
 
-@media (max-width: 1240px) {
+@media (max-width: 1160px) {
 	.tradera-grid {
 		grid-template-columns: repeat(3, 1fr);
 	}

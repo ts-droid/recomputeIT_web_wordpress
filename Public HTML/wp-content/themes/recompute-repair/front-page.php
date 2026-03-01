@@ -86,7 +86,6 @@ get_header();
 					<p class="eyebrow"><?php echo esc_html(recompute_copy('tradera_eyebrow')); ?></p>
 					<h2><?php echo esc_html(recompute_copy('tradera_title')); ?></h2>
 					<div class="tradera-brand">
-						<img src="<?php echo esc_url(home_url('/images/marketing/tradera-symbol-black.png')); ?>" alt="Tradera logo">
 						<span>Tradera</span>
 					</div>
 				</div>
