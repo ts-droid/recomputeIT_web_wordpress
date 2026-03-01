@@ -84,9 +84,11 @@ get_header();
 			<div class="heading-row">
 				<div>
 					<p class="eyebrow"><?php echo esc_html(recompute_copy('tradera_eyebrow')); ?></p>
-					<h2><?php echo esc_html(recompute_copy('tradera_title')); ?></h2>
-					<div class="tradera-brand">
-						<span>Tradera</span>
+					<div class="tradera-title-row">
+						<h2><?php echo esc_html(recompute_copy('tradera_title')); ?></h2>
+						<div class="tradera-brand">
+							<span>Tradera</span>
+						</div>
 					</div>
 				</div>
 			</div>
