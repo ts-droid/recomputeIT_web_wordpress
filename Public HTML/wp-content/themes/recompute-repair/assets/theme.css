@@ -341,26 +341,27 @@ h3 {
 	align-items: center;
 	gap: 0.45rem;
 	margin-top: 0.4rem;
-	padding: 0.3rem 0.55rem;
+	padding: 0.38rem 0.62rem;
 	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.1);
-	border: 1px solid rgba(255, 255, 255, 0.18);
-	color: #d7e4f5;
-	font-size: 0.82rem;
+	background: rgba(255, 255, 255, 0.95);
+	border: 1px solid rgba(18, 34, 54, 0.14);
+	color: #0f2238;
+	font-size: 0.84rem;
 	font-weight: 700;
 }
 
 .tradera-brand img {
-	width: 1.1rem;
-	height: 1.1rem;
-	background: #fff;
-	border-radius: 50%;
-	padding: 0.15rem;
+	width: 1.22rem;
+	height: 1.22rem;
+	object-fit: contain;
+	background: transparent;
+	border-radius: 0;
+	padding: 0;
 }
 
 .tradera-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(4, 1fr);
 	gap: 0.9rem;
 }
 
@@ -394,19 +395,9 @@ h3 {
 
 .listing-media {
 	position: relative;
-	aspect-ratio: 4 / 3;
+	aspect-ratio: 1 / 1;
 	overflow: hidden;
-	background: radial-gradient(circle at center, #22334b 0%, #0f1b2b 100%);
-}
-
-.listing-media::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	background:
-		linear-gradient(90deg, rgba(11, 19, 31, 0.72) 0%, transparent 18%, transparent 82%, rgba(11, 19, 31, 0.72) 100%),
-		linear-gradient(180deg, transparent 0%, rgba(11, 19, 31, 0.18) 100%);
-	pointer-events: none;
+	background: #f2f5f8;
 }
 
 .listing-media img {
@@ -414,13 +405,7 @@ h3 {
 	height: 100%;
 	object-fit: cover;
 	object-position: center;
-	transform: scale(1.08);
-	transform-origin: center;
-	transition: transform 0.25s ease;
-}
-
-.listing-card:hover .listing-media img {
-	transform: scale(1.12);
+	transition: transform 0.18s ease;
 }
 
 .listing-body {
@@ -488,6 +473,12 @@ h3 {
 
 	.tradera-grid {
 		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (max-width: 1240px) {
+	.tradera-grid {
+		grid-template-columns: repeat(3, 1fr);
 	}
 }
 
