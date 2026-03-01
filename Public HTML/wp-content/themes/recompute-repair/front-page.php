@@ -85,8 +85,11 @@ get_header();
 				<div>
 					<p class="eyebrow"><?php echo esc_html(recompute_copy('tradera_eyebrow')); ?></p>
 					<h2><?php echo esc_html(recompute_copy('tradera_title')); ?></h2>
+					<div class="tradera-brand">
+						<img src="<?php echo esc_url(home_url('/images/marketing/tradera-symbol-black.png')); ?>" alt="Tradera logo">
+						<span>Tradera</span>
+					</div>
 				</div>
-				<a class="cta ghost" href="<?php echo esc_url(home_url('/data/tradera.json')); ?>"><?php echo esc_html(recompute_copy('tradera_json')); ?></a>
 			</div>
 			<div id="tradera-listings" class="tradera-grid" aria-live="polite">
 				<p class="loading"><?php echo esc_html(recompute_copy('tradera_loading')); ?></p>

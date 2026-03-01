@@ -47,12 +47,15 @@
 			.map((item) => {
 				const bid = item.nextBid || item.buyNow || item.openingBid;
 				const image = item.image || item.thumbnail || "/images/marketing/product-tv.jpg";
+				const imageAlt = (item.title || "Tradera-annons").replace(/"/g, "&quot;");
 				const rawLink = item.itemLink || recomputeTheme.traderaFallback;
 				const link = String(rawLink).replace(/^http:\/\//i, "https://");
 				return `
 					<article class="listing-card">
 						<a class="listing-link" href="${link}" target="_blank" rel="noopener noreferrer">
-							<img src="${image}" alt="${(item.title || "Tradera-annons").replace(/"/g, "&quot;")}">
+							<div class="listing-media">
+								<img src="${image}" alt="${imageAlt}" loading="lazy">
+							</div>
 							<div class="listing-body">
 								<h3 class="listing-title">${item.title || "Annons"}</h3>
 								<p class="listing-meta">${recomputeTheme.labelBid || "Bid"}: ${asCurrency(bid)}</p>

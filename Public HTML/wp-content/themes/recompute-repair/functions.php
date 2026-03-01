@@ -700,6 +700,11 @@ function recompute_humanize_key(string $key): string
 	return ucwords($key);
 }
 
+function recompute_hidden_cms_keys(): array
+{
+	return ['tradera_json'];
+}
+
 add_action('admin_menu', function () {
 	add_theme_page(
 		__('Recompute CMS', 'recompute-repair'),
@@ -774,7 +779,11 @@ function recompute_render_cms_page(): void
 	echo '<form method="post">';
 	wp_nonce_field('recompute_cms_save', 'recompute_cms_nonce');
 	echo '<table class="form-table" role="presentation">';
+	$hidden_keys = recompute_hidden_cms_keys();
 	foreach ($lang_defaults as $key => $default_value) {
+		if (in_array((string) $key, $hidden_keys, true)) {
+			continue;
+		}
 		$value = isset($current[$key]) ? (string) $current[$key] : (string) $default_value;
 		echo '<tr>';
 		echo '<th scope="row"><label for="copy_' . esc_attr($key) . '">' . esc_html(recompute_humanize_key($key)) . '</label></th>';
