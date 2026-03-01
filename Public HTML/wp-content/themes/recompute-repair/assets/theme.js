@@ -5,7 +5,7 @@
 		return;
 	}
 	const locale = recomputeTheme.locale || "sv";
-	const pageSize = 9;
+	const pageSize = 12;
 	let allItems = [];
 	let visibleCount = pageSize;
 
