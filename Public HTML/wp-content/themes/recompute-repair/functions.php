@@ -561,6 +561,128 @@ function recompute_cms_translations(): array
 	return is_array($stored) ? $stored : [];
 }
 
+function recompute_deepl_api_key(): string
+{
+	if (defined('RECOMPUTE_DEEPL_API_KEY') && is_string(RECOMPUTE_DEEPL_API_KEY)) {
+		return trim(RECOMPUTE_DEEPL_API_KEY);
+	}
+
+	$env_key = getenv('RECOMPUTE_DEEPL_API_KEY');
+	return is_string($env_key) ? trim($env_key) : '';
+}
+
+function recompute_translation_targets(): array
+{
+	return [
+		'en' => 'EN',
+		'ar' => 'AR',
+		'es' => 'ES',
+		'fi' => 'FI',
+		'ku' => '', // DeepL does not currently support Kurdish.
+		'tr' => 'TR',
+		'pl' => 'PL',
+		'uk' => 'UK',
+	];
+}
+
+function recompute_schedule_auto_translation(): void
+{
+	if (wp_next_scheduled('recompute_auto_translate_event')) {
+		return;
+	}
+
+	// Run shortly after save; WP-Cron executes on next request.
+	wp_schedule_single_event(time() + 20, 'recompute_auto_translate_event');
+}
+
+function recompute_deepl_translate_batch(array $texts, string $target_lang): array
+{
+	$api_key = recompute_deepl_api_key();
+	if ($api_key === '') {
+		return [];
+	}
+
+	$response = wp_remote_post('https://api-free.deepl.com/v2/translate', [
+		'timeout' => 40,
+		'body' => [
+			'auth_key' => $api_key,
+			'source_lang' => 'SV',
+			'target_lang' => $target_lang,
+			'preserve_formatting' => '1',
+			'text' => array_values($texts),
+		],
+	]);
+
+	if (is_wp_error($response)) {
+		return [];
+	}
+
+	$status = (int) wp_remote_retrieve_response_code($response);
+	$body = json_decode((string) wp_remote_retrieve_body($response), true);
+	if ($status < 200 || $status >= 300 || !is_array($body) || !isset($body['translations']) || !is_array($body['translations'])) {
+		return [];
+	}
+
+	$out = [];
+	foreach ($body['translations'] as $entry) {
+		if (is_array($entry) && isset($entry['text']) && is_scalar($entry['text'])) {
+			$out[] = (string) $entry['text'];
+		}
+	}
+
+	return $out;
+}
+
+add_action('recompute_auto_translate_event', function () {
+	$api_key = recompute_deepl_api_key();
+	if ($api_key === '') {
+		return;
+	}
+
+	$defaults = recompute_default_translations();
+	$cms = recompute_cms_translations();
+	$sv_defaults = $defaults['sv'] ?? [];
+	$sv_cms = is_array($cms['sv'] ?? null) ? $cms['sv'] : [];
+	$source = array_merge($sv_defaults, $sv_cms);
+	$targets = recompute_translation_targets();
+
+	foreach ($targets as $lang_code => $deepl_target) {
+		if ($lang_code === 'sv') {
+			continue;
+		}
+
+		$lang_defaults = $defaults[$lang_code] ?? ($defaults['en'] ?? []);
+		$lang_current = is_array($cms[$lang_code] ?? null) ? $cms[$lang_code] : [];
+		$merged = array_merge($lang_defaults, $lang_current);
+
+		// If provider doesn't support this language, keep existing content.
+		if ($deepl_target === '') {
+			$cms[$lang_code] = $merged;
+			continue;
+		}
+
+		$keys = array_keys($sv_defaults);
+		$texts = [];
+		foreach ($keys as $key) {
+			$value = $source[$key] ?? '';
+			$texts[] = is_scalar($value) ? (string) $value : '';
+		}
+
+		$translated = recompute_deepl_translate_batch($texts, $deepl_target);
+		if (count($translated) !== count($texts)) {
+			continue;
+		}
+
+		foreach ($keys as $idx => $key) {
+			$merged[$key] = $translated[$idx];
+		}
+
+		$cms[$lang_code] = $merged;
+	}
+
+	update_option('recompute_cms_translations', $cms, false);
+});
+
 function recompute_is_large_text_key(string $key): bool
 {
 	$large_markers = ['_body', '_lead', '_title', '_loading', '_error', '_weekday', '_weekend'];
@@ -619,9 +741,19 @@ function recompute_render_cms_page(): void
 			update_option('recompute_cms_translations', $option_data, false);
 			$current = array_merge($lang_defaults, $sanitized);
 
+			if ($selected_lang === 'sv') {
+				recompute_schedule_auto_translation();
+			}
+
 			echo '<div class="notice notice-success is-dismissible"><p>' .
 				esc_html__('Saved language content.', 'recompute-repair') .
 				'</p></div>';
+
+			if ($selected_lang === 'sv' && recompute_deepl_api_key() === '') {
+				echo '<div class="notice notice-warning is-dismissible"><p>' .
+					esc_html__('Auto-translation is not active. Add RECOMPUTE_DEEPL_API_KEY in wp-config.php.', 'recompute-repair') .
+					'</p></div>';
+			}
 		}
 	}
 

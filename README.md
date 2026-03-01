@@ -112,3 +112,16 @@ After secrets are set:
 1. Push changes to `main`
 2. Open `GitHub -> Actions -> Deploy WordPress Theme`
 3. Verify job succeeds
+
+## 12) Background auto-translation from Swedish CMS content
+When you save language content in `Appearance -> Recompute CMS` with language `Svenska`,
+the theme schedules a background translation job (WP-Cron) for other supported languages.
+
+Requires DeepL API key in `wp-config.php`:
+```php
+define('RECOMPUTE_DEEPL_API_KEY', 'your-deepl-api-key');
+```
+
+Notes:
+- The job runs shortly after save (on next page request).
+- Kurdish (`ku`) is currently left as-is because DeepL does not support it.
