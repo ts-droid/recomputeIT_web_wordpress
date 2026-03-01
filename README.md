@@ -50,6 +50,7 @@ This removes DB/WordPress volumes so you can reinstall from scratch.
 1. Open Appearance -> Customize -> Recompute Branding
 2. Upload light logo to `Header logo`
 3. Upload dark/alternate logo to `Footer logo`
+4. Upload `Tradera logo` to test different variants from Media Library
 
 The theme will use these logo files in header and footer.
 
@@ -125,5 +126,5 @@ define('RECOMPUTE_OPENAI_MODEL', 'gpt-4o-mini');
 ```
 
 Notes:
-- The job runs shortly after save (on next page request).
+- The job runs immediately when you save Swedish content, and is also scheduled in WP-Cron as fallback.
 - Kurdish (`ku`) is included via OpenAI translation.

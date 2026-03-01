@@ -669,6 +669,26 @@ function recompute_schedule_auto_translation(): void
 	wp_schedule_single_event(time() + 20, 'recompute_auto_translate_event');
 }
 
+function recompute_extract_json_object(string $content): string
+{
+	$trimmed = trim($content);
+	$trimmed = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
+	$trimmed = preg_replace('/\s*```$/', '', (string) $trimmed);
+	$trimmed = trim((string) $trimmed);
+
+	if ($trimmed !== '' && $trimmed[0] === '{') {
+		return $trimmed;
+	}
+
+	$start = strpos($trimmed, '{');
+	$end = strrpos($trimmed, '}');
+	if ($start !== false && $end !== false && $end > $start) {
+		return substr($trimmed, $start, $end - $start + 1);
+	}
+
+	return $trimmed;
+}
+
 function recompute_openai_translate_batch(array $texts, string $target_lang_name): array
 {
 	$api_key = recompute_openai_api_key();
@@ -679,6 +699,7 @@ function recompute_openai_translate_batch(array $texts, string $target_lang_name
 	$payload = [
 		'model' => recompute_openai_model(),
 		'temperature' => 0.2,
+		'response_format' => ['type' => 'json_object'],
 		'messages' => [
 			[
 				'role' => 'system',
@@ -719,7 +740,7 @@ function recompute_openai_translate_batch(array $texts, string $target_lang_name
 		return [];
 	}
 
-	$parsed = json_decode($content, true);
+	$parsed = json_decode(recompute_extract_json_object($content), true);
 	if (!is_array($parsed) || !isset($parsed['translations']) || !is_array($parsed['translations'])) {
 		return [];
 	}
@@ -734,10 +755,11 @@ function recompute_openai_translate_batch(array $texts, string $target_lang_name
 	return $out;
 }
 
-add_action('recompute_auto_translate_event', function () {
+function recompute_run_auto_translation(): array
+{
 	$api_key = recompute_openai_api_key();
 	if ($api_key === '') {
-		return;
+		return ['ok' => false, 'message' => 'missing_api_key', 'updated' => 0];
 	}
 
 	$defaults = recompute_default_translations();
@@ -746,6 +768,7 @@ add_action('recompute_auto_translate_event', function () {
 	$sv_cms = is_array($cms['sv'] ?? null) ? $cms['sv'] : [];
 	$source = array_merge($sv_defaults, $sv_cms);
 	$targets = recompute_translation_targets();
+	$updated = 0;
 
 	foreach ($targets as $lang_code => $target_lang_name) {
 		if ($lang_code === 'sv') {
@@ -773,9 +796,15 @@ add_action('recompute_auto_translate_event', function () {
 		}
 
 		$cms[$lang_code] = $merged;
+		$updated++;
 	}
 
 	update_option('recompute_cms_translations', $cms, false);
+	return ['ok' => true, 'message' => 'done', 'updated' => $updated];
+}
+
+add_action('recompute_auto_translate_event', function () {
+	recompute_run_auto_translation();
 });
 
 function recompute_is_large_text_key(string $key): bool
@@ -842,7 +871,13 @@ function recompute_render_cms_page(): void
 			$current = array_merge($lang_defaults, $sanitized);
 
 			if ($selected_lang === 'sv') {
+				$result = recompute_run_auto_translation();
 				recompute_schedule_auto_translation();
+				if (!empty($result['ok'])) {
+					echo '<div class="notice notice-info is-dismissible"><p>' .
+						esc_html(sprintf(__('Auto-translation updated %d language versions.', 'recompute-repair'), (int) ($result['updated'] ?? 0))) .
+						'</p></div>';
+				}
 			}
 
 			echo '<div class="notice notice-success is-dismissible"><p>' .
@@ -944,6 +979,12 @@ add_action('customize_register', function ($wp_customize) {
 		'label' => __('Footer logo', 'recompute-repair'),
 		'section' => 'recompute_branding',
 	]));
+
+	$wp_customize->add_setting('recompute_logo_tradera');
+	$wp_customize->add_control(new WP_Customize_Image_Control($wp_customize, 'recompute_logo_tradera', [
+		'label' => __('Tradera logo', 'recompute-repair'),
+		'section' => 'recompute_branding',
+	]));
 });
 
 /**
@@ -987,6 +1028,22 @@ function recompute_render_logo(string $location = 'header'): void
 	}
 
 	echo '<span class="brand-mark">R</span><span>Recompute IT Nordic</span>';
+}
+
+function recompute_tradera_logo_url(): string
+{
+	$logo = (string) get_theme_mod('recompute_logo_tradera');
+	if ($logo !== '') {
+		if (is_numeric($logo)) {
+			$attachment_url = wp_get_attachment_url((int) $logo);
+			if (is_string($attachment_url) && $attachment_url !== '') {
+				return $attachment_url;
+			}
+		}
+		return $logo;
+	}
+
+	return home_url('/images/marketing/tradera-symbol-black.png');
 }
 
 add_action('wp_enqueue_scripts', function () {

@@ -361,14 +361,11 @@ h3 {
 	white-space: nowrap;
 }
 
-.tradera-brand::before {
-	content: "";
+.tradera-brand img {
 	width: 0.9rem;
 	height: 0.9rem;
-	flex: 0 0 0.9rem;
-	background: url("/images/marketing/tradera-symbol-black.png") center/contain no-repeat;
-	filter: grayscale(1) contrast(1.15);
-	opacity: 0.9;
+	object-fit: contain;
+	display: block;
 }
 
 .tradera-grid {

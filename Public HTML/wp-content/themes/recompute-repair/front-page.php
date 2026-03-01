@@ -87,6 +87,7 @@ get_header();
 					<div class="tradera-title-row">
 						<h2><?php echo esc_html(recompute_copy('tradera_title')); ?></h2>
 						<div class="tradera-brand">
+							<img src="<?php echo esc_url(recompute_tradera_logo_url()); ?>" alt="Tradera logo">
 							<span>Tradera</span>
 						</div>
 					</div>
