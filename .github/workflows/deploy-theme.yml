@@ -11,6 +11,7 @@ on:
 
 jobs:
   deploy-theme:
+    timeout-minutes: 8
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,7 +28,7 @@ jobs:
       - name: Deploy theme via rsync
         shell: bash
         run: |
-          rsync -az --delete \
-            -e "ssh -p ${{ secrets.HOSTINGER_PORT }} -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes" \
+          rsync -az --delete --timeout=60 \
+            -e "ssh -p ${{ secrets.HOSTINGER_PORT }} -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3" \
             "Public HTML/wp-content/themes/recompute-repair/" \
             "${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:${{ secrets.HOSTINGER_THEME_PATH }}/"
