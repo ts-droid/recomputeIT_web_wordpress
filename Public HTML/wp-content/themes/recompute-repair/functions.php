@@ -45,50 +45,50 @@ function recompute_default_translations(): array
 			'nav_tradera' => 'Tradera',
 			'nav_contact' => 'Kontakt',
 			'cta_book' => 'Boka reparation',
-			'hero_eyebrow' => 'ELEKTRONIKVERKSTAD',
-			'hero_title' => 'Snabb och trygg reparation av teknik du vill behålla.',
-			'hero_lead' => 'Inspirerad av premium repair-studios: tydlig process, professionell felsökning och kvalitetstestad leverans.',
-			'hero_cta_services' => 'Se tjänster',
-			'hero_cta_tradera' => 'Se Tradera',
-			'hero_card_title' => 'Varför välja oss?',
-			'hero_card_1' => 'Diagnos inom 24h för de flesta enheter',
-			'hero_card_2' => 'Reparation av dator, mobil, konsol och ljud',
-			'hero_card_3' => 'Upphämtning och inlämning enligt överenskommelse',
-			'services_eyebrow' => 'TJÄNSTER',
-			'services_title' => 'Byggd för modern elektronikservice',
-			'service1_title' => 'Dator & workstation',
-			'service1_body' => 'Moderkort, kylningsproblem, lagring och prestandaoptimering.',
-			'service2_title' => 'Mobil & surfplatta',
-			'service2_body' => 'Display, laddport, batteri, kameramodul och felsökning av mjukvara.',
-			'service3_title' => 'Konsol & gaming',
-			'service3_body' => 'HDMI, överhettning, styrkretsar och handkontrollreparationer.',
-			'service4_title' => 'Audio & vintage',
-			'service4_body' => 'Recap, rengöring, signalvägar och kalibrering av klassisk utrustning.',
-			'about_eyebrow' => 'OM OSS',
-			'about_title' => 'Teknisk verkstad med fokus på livslängd och andrahandsvärde',
-			'about_body' => 'Vi kombinerar verkstadsarbete med aktiv andrahandsförsäljning. Det gör att varje reparation genomförs med verklig marknadskänsla för vad som är värt att laga, spara eller uppgradera.',
-			'stat1_label' => 'Auktionsobjekt hanterade',
-			'stat2_label' => 'Typisk svarstid',
+			'hero_eyebrow' => 'ÅTERBRUK & REPARATION',
+			'hero_title' => 'Ge din elektronik ett nytt liv – vi reparerar, uppgraderar och återbrukar.',
+			'hero_lead' => 'Specialister på begagnad elektronik och reparation – datorer, mobiler, TV och ljud. Alltid till bra pris, alltid med miljön i åtanke.',
+			'hero_cta_services' => 'Våra tjänster',
+			'hero_cta_tradera' => 'Köp begagnat på Tradera',
+			'hero_card_title' => 'Varför re:Compute-IT?',
+			'hero_card_1' => 'Kostnadsfri felsökning – du betalar bara om vi lagar den',
+			'hero_card_2' => 'Reparation och försäljning av datorer, mobiler, TV, hifi och mer',
+			'hero_card_3' => 'Hitta oss på ReTuna Återbruksgalleria i Eskilstuna',
+			'services_eyebrow' => 'TJÄNSTER & REPARATION',
+			'services_title' => 'Vi lagar det du vill behålla – och säljer det du behöver',
+			'service1_title' => 'Dator & skärm',
+			'service1_body' => 'Stationära och bärbara datorer, skärmar och tillbehör. Vi reparerar, uppgraderar och säljer begagnade exemplar till bra pris.',
+			'service2_title' => 'Mobil & iPhone',
+			'service2_body' => 'Glasbyte, batteribyten och mjukvarufelsökning för iPhone, Samsung och de flesta smartphones. Kom förbi – vi löser det oftast medan du är i gallerian.',
+			'service3_title' => 'Konsol & spel',
+			'service3_body' => 'Vi reparerar PS4, PS5, Xbox och Nintendo Switch. Vi säljer även begagnade konsoler, spel och tillbehör – alltid kontrollerade.',
+			'service4_title' => 'Hifi & skivspelare',
+			'service4_body' => 'Vi har ett brett utbud av hifi-utrustning, skivspelare och headset – både nytt och begagnat. Reparation och kalibrering utförs på plats.',
+			'about_eyebrow' => 'OM RE:COMPUTE-IT',
+			'about_title' => 'Specialister på elektronik med återbruk i fokus – sedan 2014 i ReTuna',
+			'about_body' => 're:Compute-IT är den miljömedvetna dator- och elektronikbutiken i ReTuna Återbruksgalleria i Eskilstuna. Vi återbrukar, reparerar och säljer begagnad elektronik – datorer, mobiler, TV, hifi och mycket mer. Hos oss hittar du alltid något bra till ett bra pris, och du kan lämna in din trasiga enhet för reparation eller uppgradering. Vi hjälper både privatpersoner, föreningar och företag.',
+			'stat1_label' => 'Sålda objekt på Tradera',
+			'stat2_label' => 'Snabb återkoppling',
 			'stat3_title' => 'Fokus',
 			'stat3_label' => 'Hållbar elektronik',
-			'tradera_eyebrow' => 'TRADERA',
-			'tradera_title' => 'Senaste annonser från Recompute',
+			'tradera_eyebrow' => 'KÖP BEGAGNAT',
+			'tradera_title' => 'Senaste från re:Compute-IT på Tradera',
 			'tradera_json' => 'Visa JSON',
 			'tradera_loading' => 'Laddar annonser...',
 			'tradera_bid' => 'Bud',
 			'tradera_ends' => 'Slutar',
-			'tradera_no_listings' => 'Inga annonser hittades just nu.',
-			'tradera_load_error' => 'Tradera kunde inte laddas just nu. Prova igen senare.',
+			'tradera_no_listings' => 'Inga aktiva annonser just nu – kolla in oss igen snart!',
+			'tradera_load_error' => 'Tradera kunde inte nås just nu. Besök vår profil direkt på Tradera.com!',
 			'tradera_see_listing' => 'Se annons',
 			'tradera_load_more' => 'Ladda fler',
 			'tradera_all_loaded' => 'Inga fler annonser',
-			'footer_tagline' => 'Reparation, felsökning och andrahandsförsäljning av elektronik.',
+			'footer_tagline' => 'Återbruk, reparation och försäljning av elektronik – på ReTuna i Eskilstuna.',
 			'footer_contact_title' => 'Kontakt',
-			'footer_email' => 'E-post: info@recomputeitnordic.se',
-			'footer_phone' => 'Telefon: +46 70 000 00 00',
+			'footer_email' => 'E-post: kontakt@recompute.it',
+			'footer_phone' => 'Telefon: 016-541 67 00',
 			'footer_hours_title' => 'Öppettider',
-			'footer_hours_weekday' => 'Mån-Fre: 09:00-18:00',
-			'footer_hours_weekend' => 'Helg: Enligt överenskommelse',
+			'footer_hours_weekday' => 'Mån–Fre: Enligt ReTunas öppettider',
+			'footer_hours_weekend' => 'Lör–Sön: Enligt ReTunas öppettider',
 		],
 		'en' => [
 			'label_language' => 'Language',
@@ -494,6 +494,71 @@ function recompute_default_translations(): array
 		],
 	];
 }
+
+function recompute_apply_sv_textblock_update_once(): void
+{
+	$flag = 'recompute_sv_copy_update_20260301';
+	if (get_option($flag) === 'done') {
+		return;
+	}
+
+	$defaults = recompute_default_translations();
+	$sv_defaults = $defaults['sv'] ?? [];
+	if (!is_array($sv_defaults) || empty($sv_defaults)) {
+		return;
+	}
+
+	$cms = recompute_cms_translations();
+	$sv = is_array($cms['sv'] ?? null) ? $cms['sv'] : [];
+
+	$keys_to_update = [
+		'hero_eyebrow',
+		'hero_title',
+		'hero_lead',
+		'hero_cta_services',
+		'hero_cta_tradera',
+		'hero_card_title',
+		'hero_card_1',
+		'hero_card_2',
+		'hero_card_3',
+		'services_eyebrow',
+		'services_title',
+		'service1_title',
+		'service1_body',
+		'service2_title',
+		'service2_body',
+		'service3_title',
+		'service3_body',
+		'service4_title',
+		'service4_body',
+		'about_eyebrow',
+		'about_title',
+		'about_body',
+		'stat1_label',
+		'stat2_label',
+		'tradera_eyebrow',
+		'tradera_title',
+		'tradera_no_listings',
+		'tradera_load_error',
+		'footer_tagline',
+		'footer_email',
+		'footer_phone',
+		'footer_hours_weekday',
+		'footer_hours_weekend',
+	];
+
+	foreach ($keys_to_update as $key) {
+		if (isset($sv_defaults[$key]) && is_scalar($sv_defaults[$key])) {
+			$sv[$key] = (string) $sv_defaults[$key];
+		}
+	}
+
+	$cms['sv'] = $sv;
+	update_option('recompute_cms_translations', $cms, false);
+	update_option($flag, 'done', false);
+}
+
+add_action('init', 'recompute_apply_sv_textblock_update_once');
 
 function recompute_current_lang(): string
 {
