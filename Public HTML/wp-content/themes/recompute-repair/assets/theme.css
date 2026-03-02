@@ -52,9 +52,10 @@ a {
 .topbar {
 	display: flex;
 	align-items: center;
-	justify-content: flex-start;
+	justify-content: space-between;
 	gap: 1rem;
 	padding: 1rem 0;
+	position: relative;
 }
 
 .brand {
@@ -99,8 +100,12 @@ a {
 }
 
 .main-nav-center {
-	flex: 1 1 auto;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
 	justify-content: center;
+	white-space: nowrap;
 }
 
 .main-nav a:hover {
@@ -117,8 +122,8 @@ a {
 	align-items: center;
 	gap: 0.45rem;
 	margin-left: 0;
-	padding-left: 0.7rem;
-	border-left: 1px solid rgba(15, 27, 43, 0.16);
+	padding-left: 0;
+	border-left: 0;
 }
 
 .lang-label {
@@ -487,6 +492,7 @@ h3 {
 
 	.topbar {
 		padding: 0.7rem 0;
+		position: static;
 	}
 
 	.brand-logo-header {
