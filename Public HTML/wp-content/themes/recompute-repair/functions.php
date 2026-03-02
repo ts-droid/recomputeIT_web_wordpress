@@ -1011,3 +1011,168 @@ add_action('wp_enqueue_scripts', function () {
 		'locale' => recompute_current_lang(),
 	]);
 });
+
+/**
+ * Tradera JSON sync: fetch from source URL and update /data/tradera.json.
+ *
+ * Configure in wp-config.php:
+ * define('RECOMPUTE_TRADERA_SOURCE_URL', 'https://your-source.example/tradera.json');
+ * define('RECOMPUTE_CRON_TOKEN', 'long-random-token');
+ */
+function recompute_tradera_target_file(): string
+{
+	return trailingslashit(ABSPATH) . 'data/tradera.json';
+}
+
+function recompute_normalize_tradera_items(array $items): array
+{
+	$normalized = [];
+	foreach ($items as $item) {
+		if (!is_array($item)) {
+			continue;
+		}
+
+		$title = trim((string) ($item['title'] ?? ''));
+		if ($title === '') {
+			continue;
+		}
+
+		$end_date = (string) ($item['endDate'] ?? $item['end_date'] ?? $item['endsAt'] ?? '');
+		$item_link = (string) ($item['itemLink'] ?? $item['url'] ?? $item['link'] ?? '');
+
+		$normalized[] = [
+			'id' => (string) ($item['id'] ?? ''),
+			'title' => $title,
+			'itemLink' => $item_link,
+			'thumbnail' => (string) ($item['thumbnail'] ?? $item['thumb'] ?? ''),
+			'image' => (string) ($item['image'] ?? ''),
+			'endDate' => $end_date,
+			'buyNow' => (string) ($item['buyNow'] ?? ''),
+			'nextBid' => (string) ($item['nextBid'] ?? ''),
+			'openingBid' => (string) ($item['openingBid'] ?? ''),
+		];
+	}
+
+	usort($normalized, static function (array $a, array $b): int {
+		$at = strtotime((string) ($a['endDate'] ?? '')) ?: 0;
+		$bt = strtotime((string) ($b['endDate'] ?? '')) ?: 0;
+		return $at <=> $bt;
+	});
+
+	return $normalized;
+}
+
+function recompute_sync_tradera_json(): array
+{
+	$source_url = defined('RECOMPUTE_TRADERA_SOURCE_URL') ? trim((string) RECOMPUTE_TRADERA_SOURCE_URL) : '';
+	if ($source_url === '') {
+		return ['ok' => false, 'message' => 'Missing RECOMPUTE_TRADERA_SOURCE_URL'];
+	}
+
+	$response = wp_remote_get($source_url, [
+		'timeout' => 25,
+		'headers' => [
+			'Accept' => 'application/json',
+		],
+	]);
+
+	if (is_wp_error($response)) {
+		return ['ok' => false, 'message' => $response->get_error_message()];
+	}
+
+	$status = (int) wp_remote_retrieve_response_code($response);
+	if ($status < 200 || $status >= 300) {
+		return ['ok' => false, 'message' => 'HTTP ' . $status];
+	}
+
+	$payload = json_decode((string) wp_remote_retrieve_body($response), true);
+	if (!is_array($payload)) {
+		return ['ok' => false, 'message' => 'Invalid JSON payload'];
+	}
+
+	$source_items = [];
+	if (isset($payload['items']) && is_array($payload['items'])) {
+		$source_items = $payload['items'];
+	} elseif (array_is_list($payload)) {
+		$source_items = $payload;
+	}
+
+	$items = recompute_normalize_tradera_items($source_items);
+	$document = [
+		'alias' => (string) ($payload['alias'] ?? 'recomputeitnordic'),
+		'fetchedAt' => gmdate('c'),
+		'items' => $items,
+	];
+
+	$target = recompute_tradera_target_file();
+	$dir = dirname($target);
+	if (!is_dir($dir)) {
+		wp_mkdir_p($dir);
+	}
+
+	$json = wp_json_encode($document, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+	if (!is_string($json) || $json === '') {
+		return ['ok' => false, 'message' => 'Failed to encode JSON'];
+	}
+
+	$tmp = $target . '.tmp';
+	$written = @file_put_contents($tmp, $json . PHP_EOL, LOCK_EX);
+	if ($written === false) {
+		return ['ok' => false, 'message' => 'Unable to write temp file'];
+	}
+
+	if (!@rename($tmp, $target)) {
+		@unlink($tmp);
+		return ['ok' => false, 'message' => 'Unable to replace target file'];
+	}
+
+	update_option('recompute_tradera_last_sync', [
+		'time' => time(),
+		'count' => count($items),
+	], false);
+
+	return ['ok' => true, 'count' => count($items), 'target' => $target];
+}
+
+add_filter('cron_schedules', static function (array $schedules): array {
+	$schedules['recompute_15_minutes'] = [
+		'interval' => 15 * MINUTE_IN_SECONDS,
+		'display' => __('Every 15 minutes', 'recompute-repair'),
+	];
+	return $schedules;
+});
+
+function recompute_schedule_tradera_sync(): void
+{
+	if (!wp_next_scheduled('recompute_tradera_sync_event')) {
+		wp_schedule_event(time() + 60, 'recompute_15_minutes', 'recompute_tradera_sync_event');
+	}
+}
+
+add_action('after_switch_theme', 'recompute_schedule_tradera_sync');
+add_action('init', 'recompute_schedule_tradera_sync');
+
+add_action('recompute_tradera_sync_event', static function (): void {
+	recompute_sync_tradera_json();
+});
+
+add_action('rest_api_init', static function (): void {
+	register_rest_route('recompute/v1', '/tradera-sync', [
+		'methods' => 'POST',
+		'permission_callback' => static function (WP_REST_Request $request): bool {
+			$token = defined('RECOMPUTE_CRON_TOKEN') ? (string) RECOMPUTE_CRON_TOKEN : '';
+			if ($token === '') {
+				return false;
+			}
+			$provided = (string) $request->get_param('key');
+			return hash_equals($token, $provided);
+		},
+		'callback' => static function (): WP_REST_Response {
+			$result = recompute_sync_tradera_json();
+			if (empty($result['ok'])) {
+				return new WP_REST_Response($result, 500);
+			}
+			return new WP_REST_Response($result, 200);
+		},
+	]);
+});

@@ -128,3 +128,26 @@ define('RECOMPUTE_OPENAI_MODEL', 'gpt-4o-mini');
 Notes:
 - The job runs immediately when you save Swedish content, and is also scheduled in WP-Cron as fallback.
 - Kurdish (`ku`) is included via OpenAI translation.
+
+## 13) Automatic Tradera JSON refresh (Cron)
+Theme now includes a scheduled sync job that updates:
+`Public HTML/data/tradera.json`
+
+### A) Add config in `wp-config.php`
+```php
+define('RECOMPUTE_TRADERA_SOURCE_URL', 'https://your-source.example/tradera.json');
+define('RECOMPUTE_CRON_TOKEN', 'replace-with-long-random-token');
+```
+
+### B) Hostinger Cron Job (recommended)
+In Hostinger -> Advanced -> Cron Jobs, add:
+```bash
+curl -sS -X POST "https://darkslateblue-wren-905068.hostingersite.com/wp-json/recompute/v1/tradera-sync?key=replace-with-long-random-token" >/dev/null 2>&1
+```
+
+Suggested interval:
+- every 15 minutes
+
+### C) Fallback
+Theme also schedules a WP-Cron event (`recompute_tradera_sync_event`) every 15 minutes.
+This runs on site traffic if external cron is not configured.
