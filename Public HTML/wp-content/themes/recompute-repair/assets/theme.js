@@ -8,6 +8,7 @@
 	const pageSize = 12;
 	let allItems = [];
 	let visibleCount = pageSize;
+	const nowTs = Date.now();
 
 	const asCurrency = (value) => {
 		const n = Number(value);
@@ -19,6 +20,11 @@
 		const d = new Date(value);
 		if (Number.isNaN(d.getTime())) return "";
 		return d.toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
+	};
+
+	const endDateTs = (item) => {
+		const ts = new Date(item?.endDate || "").getTime();
+		return Number.isNaN(ts) ? 0 : ts;
 	};
 
 	const updateButton = () => {
@@ -81,7 +87,19 @@
 			return response.json();
 		})
 		.then((payload) => {
-			allItems = Array.isArray(payload.items) ? payload.items : [];
+			const items = Array.isArray(payload.items) ? payload.items : [];
+			const seen = new Set();
+			allItems = items
+				.filter((item) => {
+					const id = String(item?.id || "");
+					if (id && seen.has(id)) return false;
+					if (id) seen.add(id);
+					const ts = endDateTs(item);
+					// Keep only active auctions (future end date).
+					return ts > nowTs;
+				})
+				.sort((a, b) => endDateTs(a) - endDateTs(b));
+			visibleCount = pageSize;
 			render();
 		})
 		.catch(() => {
