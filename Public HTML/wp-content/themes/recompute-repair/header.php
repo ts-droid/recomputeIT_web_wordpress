@@ -22,12 +22,14 @@ if (!defined('ABSPATH')) {
 		<a class="brand" href="<?php echo esc_url(home_url('/')); ?>">
 			<?php recompute_render_logo('header'); ?>
 		</a>
-		<nav class="main-nav">
+		<nav class="main-nav main-nav-center">
 			<a href="#services"><?php echo esc_html(recompute_copy('nav_services')); ?></a>
 			<a href="#about"><?php echo esc_html(recompute_copy('nav_about')); ?></a>
 			<a href="#tradera"><?php echo esc_html(recompute_copy('nav_tradera')); ?></a>
 			<a href="#contact"><?php echo esc_html(recompute_copy('nav_contact')); ?></a>
-			<?php recompute_render_language_selector(); ?>
 		</nav>
+		<div class="header-lang">
+			<?php recompute_render_language_selector(); ?>
+		</div>
 	</div>
 </header>

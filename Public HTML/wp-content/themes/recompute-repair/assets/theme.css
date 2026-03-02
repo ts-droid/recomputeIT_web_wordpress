@@ -52,7 +52,7 @@ a {
 .topbar {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: flex-start;
 	gap: 1rem;
 	padding: 1rem 0;
 }
@@ -96,18 +96,27 @@ a {
 	align-items: center;
 	gap: 1rem;
 	color: #2b3b4f;
-	margin-left: auto;
+}
+
+.main-nav-center {
+	flex: 1 1 auto;
+	justify-content: center;
 }
 
 .main-nav a:hover {
 	color: #0f1b2b;
 }
 
+.header-lang {
+	margin-left: auto;
+	flex: 0 0 auto;
+}
+
 .lang-form {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.45rem;
-	margin-left: 1rem;
+	margin-left: 0;
 	padding-left: 0.7rem;
 	border-left: 1px solid rgba(15, 27, 43, 0.16);
 }
@@ -461,6 +470,19 @@ h3 {
 @media (max-width: 960px) {
 	.main-nav {
 		display: none;
+	}
+
+	.header-lang {
+		margin-left: auto;
+	}
+
+	.lang-label {
+		display: none;
+	}
+
+	.lang-form {
+		padding-left: 0;
+		border-left: 0;
 	}
 
 	.topbar {
