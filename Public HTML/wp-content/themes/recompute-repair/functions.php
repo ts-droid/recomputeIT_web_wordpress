@@ -1013,11 +1013,24 @@ add_action('wp_enqueue_scripts', function () {
 });
 
 /**
- * Tradera JSON sync: fetch from source URL and update /data/tradera.json.
+ * Tradera JSON sync.
+ *
+ * Supports two modes:
+ * 1) External JSON source URL
+ * 2) Direct Tradera API calls (GetUserByAlias + GetSellerItems)
  *
  * Configure in wp-config.php:
- * define('RECOMPUTE_TRADERA_SOURCE_URL', 'https://your-source.example/tradera.json');
  * define('RECOMPUTE_CRON_TOKEN', 'long-random-token');
+ *
+ * // Mode 1 (optional)
+ * define('RECOMPUTE_TRADERA_SOURCE_URL', 'https://your-source.example/tradera.json');
+ *
+ * // Mode 2 (optional, used if source URL is not set)
+ * define('RECOMPUTE_TRADERA_APP_ID', '1234');
+ * define('RECOMPUTE_TRADERA_APP_KEY', 'your-app-key');
+ * define('RECOMPUTE_TRADERA_ALIAS', 'recomputeitnordic');
+ * define('RECOMPUTE_TRADERA_SANDBOX', false);
+ * define('RECOMPUTE_TRADERA_SYNC_MINUTES', 30);
  */
 function recompute_tradera_target_file(): string
 {
@@ -1062,48 +1075,8 @@ function recompute_normalize_tradera_items(array $items): array
 	return $normalized;
 }
 
-function recompute_sync_tradera_json(): array
+function recompute_tradera_write_document(array $document): array
 {
-	$source_url = defined('RECOMPUTE_TRADERA_SOURCE_URL') ? trim((string) RECOMPUTE_TRADERA_SOURCE_URL) : '';
-	if ($source_url === '') {
-		return ['ok' => false, 'message' => 'Missing RECOMPUTE_TRADERA_SOURCE_URL'];
-	}
-
-	$response = wp_remote_get($source_url, [
-		'timeout' => 25,
-		'headers' => [
-			'Accept' => 'application/json',
-		],
-	]);
-
-	if (is_wp_error($response)) {
-		return ['ok' => false, 'message' => $response->get_error_message()];
-	}
-
-	$status = (int) wp_remote_retrieve_response_code($response);
-	if ($status < 200 || $status >= 300) {
-		return ['ok' => false, 'message' => 'HTTP ' . $status];
-	}
-
-	$payload = json_decode((string) wp_remote_retrieve_body($response), true);
-	if (!is_array($payload)) {
-		return ['ok' => false, 'message' => 'Invalid JSON payload'];
-	}
-
-	$source_items = [];
-	if (isset($payload['items']) && is_array($payload['items'])) {
-		$source_items = $payload['items'];
-	} elseif (array_is_list($payload)) {
-		$source_items = $payload;
-	}
-
-	$items = recompute_normalize_tradera_items($source_items);
-	$document = [
-		'alias' => (string) ($payload['alias'] ?? 'recomputeitnordic'),
-		'fetchedAt' => gmdate('c'),
-		'items' => $items,
-	];
-
 	$target = recompute_tradera_target_file();
 	$dir = dirname($target);
 	if (!is_dir($dir)) {
@@ -1126,26 +1099,268 @@ function recompute_sync_tradera_json(): array
 		return ['ok' => false, 'message' => 'Unable to replace target file'];
 	}
 
+	$count = isset($document['items']) && is_array($document['items']) ? count($document['items']) : 0;
 	update_option('recompute_tradera_last_sync', [
 		'time' => time(),
-		'count' => count($items),
+		'count' => $count,
 	], false);
 
-	return ['ok' => true, 'count' => count($items), 'target' => $target];
+	return ['ok' => true, 'count' => $count, 'target' => $target];
+}
+
+function recompute_tradera_api_endpoint(): string
+{
+	return 'https://api.tradera.com/v3/publicservice.asmx';
+}
+
+function recompute_tradera_xml_escape(string $value): string
+{
+	return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+}
+
+function recompute_tradera_soap_call(string $method, string $method_xml): array
+{
+	$app_id = defined('RECOMPUTE_TRADERA_APP_ID') ? trim((string) RECOMPUTE_TRADERA_APP_ID) : '';
+	$app_key = defined('RECOMPUTE_TRADERA_APP_KEY') ? trim((string) RECOMPUTE_TRADERA_APP_KEY) : '';
+	$sandbox = defined('RECOMPUTE_TRADERA_SANDBOX') ? (bool) RECOMPUTE_TRADERA_SANDBOX : false;
+	if ($app_id === '' || $app_key === '') {
+		return ['ok' => false, 'message' => 'Missing RECOMPUTE_TRADERA_APP_ID or RECOMPUTE_TRADERA_APP_KEY'];
+	}
+
+	$envelope = '<?xml version="1.0" encoding="utf-8"?>'
+		. '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+		. 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+		. 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+		. '<soap:Header>'
+		. '<AuthenticationHeader xmlns="http://api.tradera.com">'
+		. '<AppId>' . recompute_tradera_xml_escape($app_id) . '</AppId>'
+		. '<AppKey>' . recompute_tradera_xml_escape($app_key) . '</AppKey>'
+		. '</AuthenticationHeader>'
+		. '<ConfigurationHeader xmlns="http://api.tradera.com">'
+		. '<Sandbox>' . ($sandbox ? 'true' : 'false') . '</Sandbox>'
+		. '<MaxResultAge>0</MaxResultAge>'
+		. '</ConfigurationHeader>'
+		. '</soap:Header>'
+		. '<soap:Body>' . $method_xml . '</soap:Body>'
+		. '</soap:Envelope>';
+
+	$response = wp_remote_post(recompute_tradera_api_endpoint(), [
+		'timeout' => 25,
+		'headers' => [
+			'Content-Type' => 'text/xml; charset=utf-8',
+			'SOAPAction' => '"http://api.tradera.com/' . $method . '"',
+		],
+		'body' => $envelope,
+	]);
+
+	if (is_wp_error($response)) {
+		return ['ok' => false, 'message' => $response->get_error_message()];
+	}
+
+	$status = (int) wp_remote_retrieve_response_code($response);
+	$body = (string) wp_remote_retrieve_body($response);
+	if ($status < 200 || $status >= 300 || $body === '') {
+		return ['ok' => false, 'message' => 'HTTP ' . $status];
+	}
+
+	return ['ok' => true, 'body' => $body];
+}
+
+function recompute_tradera_xpath_text(DOMXPath $xpath, DOMNode $context, string $local_name): string
+{
+	$nodes = $xpath->query('./*[local-name()="' . $local_name . '"]', $context);
+	if (!$nodes instanceof DOMNodeList || $nodes->length === 0) {
+		return '';
+	}
+	$value = trim((string) $nodes->item(0)->textContent);
+	return $value;
+}
+
+function recompute_tradera_fetch_items_from_api(): array
+{
+	$alias = defined('RECOMPUTE_TRADERA_ALIAS') ? trim((string) RECOMPUTE_TRADERA_ALIAS) : 'recomputeitnordic';
+	if ($alias === '') {
+		$alias = 'recomputeitnordic';
+	}
+
+	$cached_key = 'recompute_tradera_seller_id_' . md5(strtolower($alias));
+	$seller_id = (int) get_option($cached_key, 0);
+
+	if ($seller_id <= 0) {
+		$user_xml = '<GetUserByAlias xmlns="http://api.tradera.com"><userAlias>'
+			. recompute_tradera_xml_escape($alias)
+			. '</userAlias></GetUserByAlias>';
+		$user_call = recompute_tradera_soap_call('GetUserByAlias', $user_xml);
+		if (empty($user_call['ok'])) {
+			return $user_call;
+		}
+
+		$user_dom = new DOMDocument();
+		if (!@$user_dom->loadXML((string) $user_call['body'])) {
+			return ['ok' => false, 'message' => 'Invalid XML from GetUserByAlias'];
+		}
+		$user_xpath = new DOMXPath($user_dom);
+		$id_nodes = $user_xpath->query('//*[local-name()="GetUserByAliasResult"]//*[local-name()="Id"]');
+		if (!$id_nodes instanceof DOMNodeList || $id_nodes->length === 0) {
+			return ['ok' => false, 'message' => 'Could not resolve seller id from alias'];
+		}
+
+		$seller_id = (int) trim((string) $id_nodes->item(0)->textContent);
+		if ($seller_id <= 0) {
+			return ['ok' => false, 'message' => 'Resolved seller id is invalid'];
+		}
+		update_option($cached_key, $seller_id, false);
+	}
+
+	$items_xml = '<GetSellerItems xmlns="http://api.tradera.com">'
+		. '<sellerId>' . $seller_id . '</sellerId>'
+		. '<pageNumber>1</pageNumber>'
+		. '<itemsPerPage>100</itemsPerPage>'
+		. '<categoryId>0</categoryId>'
+		. '<itemType>All</itemType>'
+		. '<filterActive>Active</filterActive>'
+		. '<sortBy>EndDate</sortBy>'
+		. '<sortDirection>Ascending</sortDirection>'
+		. '</GetSellerItems>';
+	$items_call = recompute_tradera_soap_call('GetSellerItems', $items_xml);
+	if (empty($items_call['ok'])) {
+		return $items_call;
+	}
+
+	$dom = new DOMDocument();
+	if (!@$dom->loadXML((string) $items_call['body'])) {
+		return ['ok' => false, 'message' => 'Invalid XML from GetSellerItems'];
+	}
+	$xpath = new DOMXPath($dom);
+
+	$fault_nodes = $xpath->query('//*[local-name()="Fault"]//*[local-name()="faultstring"]');
+	if ($fault_nodes instanceof DOMNodeList && $fault_nodes->length > 0) {
+		$fault = trim((string) $fault_nodes->item(0)->textContent);
+		return ['ok' => false, 'message' => $fault !== '' ? $fault : 'SOAP Fault'];
+	}
+
+	$item_nodes = $xpath->query('//*[local-name()="GetSellerItemsResult"]//*[local-name()="Item"]');
+	$items = [];
+	if ($item_nodes instanceof DOMNodeList) {
+		foreach ($item_nodes as $node) {
+			$title = recompute_tradera_xpath_text($xpath, $node, 'ShortDescription');
+			if ($title === '') {
+				$title = recompute_tradera_xpath_text($xpath, $node, 'Title');
+			}
+			$image = recompute_tradera_xpath_text($xpath, $node, 'ImageLink');
+			if ($image === '') {
+				$image_nodes = $xpath->query('./*[local-name()="ImageLinks"]/*[1]', $node);
+				if ($image_nodes instanceof DOMNodeList && $image_nodes->length > 0) {
+					$image = trim((string) $image_nodes->item(0)->textContent);
+				}
+			}
+
+			$items[] = [
+				'id' => recompute_tradera_xpath_text($xpath, $node, 'Id'),
+				'title' => $title,
+				'itemLink' => recompute_tradera_xpath_text($xpath, $node, 'ItemLink'),
+				'thumbnail' => recompute_tradera_xpath_text($xpath, $node, 'ThumbnailLink'),
+				'image' => $image,
+				'endDate' => recompute_tradera_xpath_text($xpath, $node, 'EndDate'),
+				'buyNow' => recompute_tradera_xpath_text($xpath, $node, 'BuyItNowPrice'),
+				'nextBid' => recompute_tradera_xpath_text($xpath, $node, 'NextBid'),
+				'openingBid' => recompute_tradera_xpath_text($xpath, $node, 'OpeningBid'),
+			];
+		}
+	}
+
+	return [
+		'ok' => true,
+		'alias' => $alias,
+		'items' => $items,
+	];
+}
+
+function recompute_sync_tradera_json(): array
+{
+	$source_url = defined('RECOMPUTE_TRADERA_SOURCE_URL') ? trim((string) RECOMPUTE_TRADERA_SOURCE_URL) : '';
+
+	if ($source_url !== '') {
+		$response = wp_remote_get($source_url, [
+			'timeout' => 25,
+			'headers' => [
+				'Accept' => 'application/json',
+			],
+		]);
+
+		if (is_wp_error($response)) {
+			return ['ok' => false, 'message' => $response->get_error_message()];
+		}
+
+		$status = (int) wp_remote_retrieve_response_code($response);
+		if ($status < 200 || $status >= 300) {
+			return ['ok' => false, 'message' => 'HTTP ' . $status];
+		}
+
+		$payload = json_decode((string) wp_remote_retrieve_body($response), true);
+		if (!is_array($payload)) {
+			return ['ok' => false, 'message' => 'Invalid JSON payload'];
+		}
+
+		$source_items = [];
+		if (isset($payload['items']) && is_array($payload['items'])) {
+			$source_items = $payload['items'];
+		} elseif (array_is_list($payload)) {
+			$source_items = $payload;
+		}
+
+		$document = [
+			'alias' => (string) ($payload['alias'] ?? 'recomputeitnordic'),
+			'fetchedAt' => gmdate('c'),
+			'items' => recompute_normalize_tradera_items($source_items),
+		];
+
+		$result = recompute_tradera_write_document($document);
+		$result['source'] = 'external_json';
+		return $result;
+	}
+
+	$api_result = recompute_tradera_fetch_items_from_api();
+	if (empty($api_result['ok'])) {
+		return $api_result;
+	}
+
+	$document = [
+		'alias' => (string) ($api_result['alias'] ?? 'recomputeitnordic'),
+		'fetchedAt' => gmdate('c'),
+		'items' => recompute_normalize_tradera_items((array) ($api_result['items'] ?? [])),
+	];
+	$result = recompute_tradera_write_document($document);
+	$result['source'] = 'tradera_api';
+	return $result;
 }
 
 add_filter('cron_schedules', static function (array $schedules): array {
-	$schedules['recompute_15_minutes'] = [
-		'interval' => 15 * MINUTE_IN_SECONDS,
-		'display' => __('Every 15 minutes', 'recompute-repair'),
+	$minutes = defined('RECOMPUTE_TRADERA_SYNC_MINUTES') ? (int) RECOMPUTE_TRADERA_SYNC_MINUTES : 30;
+	$minutes = max(5, min(180, $minutes));
+	$schedules['recompute_tradera_custom_interval'] = [
+		'interval' => $minutes * MINUTE_IN_SECONDS,
+		'display' => sprintf(__('Every %d minutes', 'recompute-repair'), $minutes),
 	];
 	return $schedules;
 });
 
 function recompute_schedule_tradera_sync(): void
 {
-	if (!wp_next_scheduled('recompute_tradera_sync_event')) {
-		wp_schedule_event(time() + 60, 'recompute_15_minutes', 'recompute_tradera_sync_event');
+	$hook = 'recompute_tradera_sync_event';
+	$required_schedule = 'recompute_tradera_custom_interval';
+	$next = wp_next_scheduled($hook);
+
+	if ($next !== false && function_exists('wp_get_scheduled_event')) {
+		$current = wp_get_scheduled_event($hook);
+		if ($current && isset($current->schedule) && $current->schedule !== $required_schedule) {
+			wp_unschedule_event($next, $hook);
+			$next = false;
+		}
+	}
+
+	if ($next === false) {
+		wp_schedule_event(time() + 60, $required_schedule, $hook);
 	}
 }
 
@@ -1158,7 +1373,7 @@ add_action('recompute_tradera_sync_event', static function (): void {
 
 add_action('rest_api_init', static function (): void {
 	register_rest_route('recompute/v1', '/tradera-sync', [
-		'methods' => 'POST',
+		'methods' => ['GET', 'POST'],
 		'permission_callback' => static function (WP_REST_Request $request): bool {
 			$token = defined('RECOMPUTE_CRON_TOKEN') ? (string) RECOMPUTE_CRON_TOKEN : '';
 			if ($token === '') {

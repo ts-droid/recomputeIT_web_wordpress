@@ -135,19 +135,30 @@ Theme now includes a scheduled sync job that updates:
 
 ### A) Add config in `wp-config.php`
 ```php
-define('RECOMPUTE_TRADERA_SOURCE_URL', 'https://your-source.example/tradera.json');
 define('RECOMPUTE_CRON_TOKEN', 'replace-with-long-random-token');
+
+// Option 1: external JSON source (optional)
+define('RECOMPUTE_TRADERA_SOURCE_URL', 'https://your-source.example/tradera.json');
+
+// Option 2: direct Tradera API (used when SOURCE_URL is not set)
+define('RECOMPUTE_TRADERA_APP_ID', '5660');
+define('RECOMPUTE_TRADERA_APP_KEY', 'your-app-key');
+define('RECOMPUTE_TRADERA_ALIAS', 'recomputeitnordic');
+define('RECOMPUTE_TRADERA_SANDBOX', false);
+
+// Optional sync interval (default 30)
+define('RECOMPUTE_TRADERA_SYNC_MINUTES', 30);
 ```
 
 ### B) Hostinger Cron Job (recommended)
 In Hostinger -> Advanced -> Cron Jobs, add:
 ```bash
-curl -sS -X POST "https://darkslateblue-wren-905068.hostingersite.com/wp-json/recompute/v1/tradera-sync?key=replace-with-long-random-token" >/dev/null 2>&1
+curl -sS "https://darkslateblue-wren-905068.hostingersite.com/wp-json/recompute/v1/tradera-sync?key=replace-with-long-random-token" >/dev/null 2>&1
 ```
 
 Suggested interval:
-- every 15 minutes
+- every 30 minutes
 
 ### C) Fallback
-Theme also schedules a WP-Cron event (`recompute_tradera_sync_event`) every 15 minutes.
+Theme also schedules a WP-Cron event (`recompute_tradera_sync_event`) with the same interval.
 This runs on site traffic if external cron is not configured.
