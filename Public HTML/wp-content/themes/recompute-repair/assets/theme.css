@@ -54,7 +54,7 @@ a {
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	padding: 0.8rem 0;
+	padding: 1rem 0;
 }
 
 .brand {
@@ -73,7 +73,7 @@ a {
 }
 
 .brand-logo-header {
-	max-height: 42px;
+	max-height: 54px;
 }
 
 .brand-logo-footer {
@@ -96,6 +96,7 @@ a {
 	align-items: center;
 	gap: 1rem;
 	color: #2b3b4f;
+	margin-left: auto;
 }
 
 .main-nav a:hover {
@@ -106,7 +107,9 @@ a {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.45rem;
-	margin-left: 0.25rem;
+	margin-left: 1rem;
+	padding-left: 0.7rem;
+	border-left: 1px solid rgba(15, 27, 43, 0.16);
 }
 
 .lang-label {
@@ -142,16 +145,6 @@ a {
 	pointer-events: none;
 	color: var(--accent-blue);
 	font-size: 0.74rem;
-}
-
-.site-header .cta.ghost {
-	background: #ffffff;
-	color: #14253a;
-	border-color: rgba(15, 27, 43, 0.28);
-}
-
-.site-header .cta.ghost:hover {
-	box-shadow: 0 8px 20px rgba(12, 32, 57, 0.14);
 }
 
 .cta {
@@ -468,6 +461,14 @@ h3 {
 @media (max-width: 960px) {
 	.main-nav {
 		display: none;
+	}
+
+	.topbar {
+		padding: 0.7rem 0;
+	}
+
+	.brand-logo-header {
+		max-height: 44px;
 	}
 
 	.hero-grid,

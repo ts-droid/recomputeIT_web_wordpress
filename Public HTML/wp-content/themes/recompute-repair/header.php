@@ -29,6 +29,5 @@ if (!defined('ABSPATH')) {
 			<a href="#contact"><?php echo esc_html(recompute_copy('nav_contact')); ?></a>
 			<?php recompute_render_language_selector(); ?>
 		</nav>
-		<a class="cta ghost" href="#contact"><?php echo esc_html(recompute_copy('cta_book')); ?></a>
 	</div>
 </header>
