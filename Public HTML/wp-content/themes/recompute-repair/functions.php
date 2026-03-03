@@ -1279,6 +1279,29 @@ function recompute_tradera_fetch_items_from_api(): array
 function recompute_sync_tradera_json(): array
 {
 	$source_url = defined('RECOMPUTE_TRADERA_SOURCE_URL') ? trim((string) RECOMPUTE_TRADERA_SOURCE_URL) : '';
+	$has_api_config = (
+		defined('RECOMPUTE_TRADERA_APP_ID') && trim((string) RECOMPUTE_TRADERA_APP_ID) !== '' &&
+		defined('RECOMPUTE_TRADERA_APP_KEY') && trim((string) RECOMPUTE_TRADERA_APP_KEY) !== ''
+	);
+
+	// Prefer direct Tradera API when credentials exist; external JSON is fallback.
+	if ($has_api_config) {
+		$api_result = recompute_tradera_fetch_items_from_api();
+		if (!empty($api_result['ok'])) {
+			$document = [
+				'alias' => (string) ($api_result['alias'] ?? 'recomputeitnordic'),
+				'fetchedAt' => gmdate('c'),
+				'items' => recompute_normalize_tradera_items((array) ($api_result['items'] ?? [])),
+			];
+			$result = recompute_tradera_write_document($document);
+			$result['source'] = 'tradera_api';
+			return $result;
+		}
+		// If API fails and a source URL is configured, fall back to source URL.
+		if ($source_url === '') {
+			return $api_result;
+		}
+	}
 
 	if ($source_url !== '') {
 		$response = wp_remote_get($source_url, [
@@ -1320,19 +1343,7 @@ function recompute_sync_tradera_json(): array
 		return $result;
 	}
 
-	$api_result = recompute_tradera_fetch_items_from_api();
-	if (empty($api_result['ok'])) {
-		return $api_result;
-	}
-
-	$document = [
-		'alias' => (string) ($api_result['alias'] ?? 'recomputeitnordic'),
-		'fetchedAt' => gmdate('c'),
-		'items' => recompute_normalize_tradera_items((array) ($api_result['items'] ?? [])),
-	];
-	$result = recompute_tradera_write_document($document);
-	$result['source'] = 'tradera_api';
-	return $result;
+	return ['ok' => false, 'message' => 'Missing Tradera config (set API credentials or SOURCE_URL)'];
 }
 
 add_filter('cron_schedules', static function (array $schedules): array {

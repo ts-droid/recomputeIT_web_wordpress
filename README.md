@@ -150,6 +150,10 @@ define('RECOMPUTE_TRADERA_SANDBOX', false);
 define('RECOMPUTE_TRADERA_SYNC_MINUTES', 30);
 ```
 
+Priority:
+- If `RECOMPUTE_TRADERA_APP_ID` + `RECOMPUTE_TRADERA_APP_KEY` are set, direct Tradera API is used.
+- `RECOMPUTE_TRADERA_SOURCE_URL` is then only fallback if API call fails.
+
 ### B) Hostinger Cron Job (recommended)
 In Hostinger -> Advanced -> Cron Jobs, add:
 ```bash
