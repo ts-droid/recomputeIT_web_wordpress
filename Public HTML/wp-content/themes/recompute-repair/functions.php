@@ -1171,8 +1171,13 @@ function recompute_tradera_soap_call(string $method, string $method_xml): array
 
 	$status = (int) wp_remote_retrieve_response_code($response);
 	$body = (string) wp_remote_retrieve_body($response);
-	if ($status < 200 || $status >= 300 || $body === '') {
-		return ['ok' => false, 'message' => 'HTTP ' . $status];
+	if ($body === '') {
+		return ['ok' => false, 'message' => 'HTTP ' . $status . ' (empty response body)'];
+	}
+
+	// Tradera SOAP can return faults with HTTP 500 but a useful XML body.
+	if ($status < 200 || $status >= 300) {
+		return ['ok' => false, 'message' => 'HTTP ' . $status, 'body' => $body, 'status' => $status];
 	}
 
 	return ['ok' => true, 'body' => $body];
@@ -1236,7 +1241,19 @@ function recompute_tradera_fetch_items_from_api(): array
 		. '</GetSellerItems>';
 	$items_call = recompute_tradera_soap_call('GetSellerItems', $items_xml);
 	if (empty($items_call['ok'])) {
-		return $items_call;
+		$raw_body = (string) ($items_call['body'] ?? '');
+		if ($raw_body !== '') {
+			$fault_dom = new DOMDocument();
+			if (@$fault_dom->loadXML($raw_body)) {
+				$fault_xpath = new DOMXPath($fault_dom);
+				$fault_nodes = $fault_xpath->query('//*[local-name()="Fault"]//*[local-name()="faultstring"]');
+				if ($fault_nodes instanceof DOMNodeList && $fault_nodes->length > 0) {
+					$fault = trim((string) $fault_nodes->item(0)->textContent);
+					return ['ok' => false, 'message' => $fault !== '' ? $fault : ((string) ($items_call['message'] ?? 'SOAP Fault'))];
+				}
+			}
+		}
+		return ['ok' => false, 'message' => (string) ($items_call['message'] ?? 'GetSellerItems failed')];
 	}
 
 	$dom = new DOMDocument();
