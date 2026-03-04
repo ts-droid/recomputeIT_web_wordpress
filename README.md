@@ -148,6 +148,9 @@ define('RECOMPUTE_TRADERA_SANDBOX', false);
 
 // Optional sync interval (default 30)
 define('RECOMPUTE_TRADERA_SYNC_MINUTES', 30);
+
+// Optional hard throttle in seconds (default = same as SYNC_MINUTES)
+define('RECOMPUTE_TRADERA_MIN_INTERVAL_SECONDS', 1800);
 ```
 
 Priority:
@@ -162,6 +165,10 @@ curl -sS "https://darkslateblue-wren-905068.hostingersite.com/wp-json/recompute/
 
 Suggested interval:
 - every 30 minutes
+
+Notes:
+- Endpoint supports `GET` and `POST`.
+- Duplicate/overlapping calls are throttled automatically to protect API limits.
 
 ### C) Fallback
 Theme also schedules a WP-Cron event (`recompute_tradera_sync_event`) with the same interval.

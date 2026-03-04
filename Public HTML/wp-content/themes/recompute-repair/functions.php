@@ -1037,6 +1037,18 @@ function recompute_tradera_target_file(): string
 	return trailingslashit(ABSPATH) . 'data/tradera.json';
 }
 
+function recompute_tradera_min_interval_seconds(): int
+{
+	if (defined('RECOMPUTE_TRADERA_MIN_INTERVAL_SECONDS')) {
+		$seconds = (int) RECOMPUTE_TRADERA_MIN_INTERVAL_SECONDS;
+		return max(300, min(21600, $seconds));
+	}
+
+	$minutes = defined('RECOMPUTE_TRADERA_SYNC_MINUTES') ? (int) RECOMPUTE_TRADERA_SYNC_MINUTES : 30;
+	$minutes = max(5, min(180, $minutes));
+	return $minutes * MINUTE_IN_SECONDS;
+}
+
 function recompute_normalize_tradera_items(array $items): array
 {
 	$normalized = [];
@@ -1276,8 +1288,29 @@ function recompute_tradera_fetch_items_from_api(): array
 	];
 }
 
-function recompute_sync_tradera_json(): array
+function recompute_sync_tradera_json(bool $force = false): array
 {
+	$lock_key = 'recompute_tradera_sync_lock';
+	if (!$force && get_transient($lock_key)) {
+		return ['ok' => true, 'skipped' => true, 'message' => 'Sync already running'];
+	}
+	set_transient($lock_key, 1, 120);
+
+	try {
+		$last_sync = get_option('recompute_tradera_last_sync', []);
+		$last_time = is_array($last_sync) ? (int) ($last_sync['time'] ?? 0) : 0;
+		$min_interval = recompute_tradera_min_interval_seconds();
+		$elapsed = time() - $last_time;
+		if (!$force && $last_time > 0 && $elapsed < $min_interval) {
+			return [
+				'ok' => true,
+				'skipped' => true,
+				'message' => 'Synced recently',
+				'lastSync' => gmdate('c', $last_time),
+				'nextSyncInSeconds' => $min_interval - $elapsed,
+			];
+		}
+
 	$source_url = defined('RECOMPUTE_TRADERA_SOURCE_URL') ? trim((string) RECOMPUTE_TRADERA_SOURCE_URL) : '';
 	$has_api_config = (
 		defined('RECOMPUTE_TRADERA_APP_ID') && trim((string) RECOMPUTE_TRADERA_APP_ID) !== '' &&
@@ -1344,6 +1377,9 @@ function recompute_sync_tradera_json(): array
 	}
 
 	return ['ok' => false, 'message' => 'Missing Tradera config (set API credentials or SOURCE_URL)'];
+	} finally {
+		delete_transient($lock_key);
+	}
 }
 
 add_filter('cron_schedules', static function (array $schedules): array {
@@ -1393,8 +1429,9 @@ add_action('rest_api_init', static function (): void {
 			$provided = (string) $request->get_param('key');
 			return hash_equals($token, $provided);
 		},
-		'callback' => static function (): WP_REST_Response {
-			$result = recompute_sync_tradera_json();
+		'callback' => static function (WP_REST_Request $request): WP_REST_Response {
+			$force = (string) $request->get_param('force') === '1';
+			$result = recompute_sync_tradera_json($force);
 			if (empty($result['ok'])) {
 				return new WP_REST_Response($result, 500);
 			}
