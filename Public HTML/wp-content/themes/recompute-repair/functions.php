@@ -1201,10 +1201,15 @@ function recompute_tradera_fetch_items_from_api(): array
 		$alias = 'recomputeitnordic';
 	}
 
-	$cached_key = 'recompute_tradera_seller_id_' . md5(strtolower($alias));
-	$seller_id = (int) get_option($cached_key, 0);
+	$configured_seller_id = defined('RECOMPUTE_TRADERA_SELLER_ID') ? (int) RECOMPUTE_TRADERA_SELLER_ID : 0;
+	if ($configured_seller_id > 0) {
+		$seller_id = $configured_seller_id;
+	} else {
+		$cached_key = 'recompute_tradera_seller_id_' . md5(strtolower($alias));
+		$seller_id = (int) get_option($cached_key, 0);
+	}
 
-	if ($seller_id <= 0) {
+	if ($seller_id <= 0 && $configured_seller_id <= 0) {
 		$user_xml = '<GetUserByAlias xmlns="http://api.tradera.com"><userAlias>'
 			. recompute_tradera_xml_escape($alias)
 			. '</userAlias></GetUserByAlias>';
@@ -1218,12 +1223,20 @@ function recompute_tradera_fetch_items_from_api(): array
 			return ['ok' => false, 'message' => 'Invalid XML from GetUserByAlias'];
 		}
 		$user_xpath = new DOMXPath($user_dom);
-		$id_nodes = $user_xpath->query('//*[local-name()="GetUserByAliasResult"]//*[local-name()="Id"]');
+		$id_nodes = $user_xpath->query('//*[local-name()="GetUserByAliasResult"]//*[local-name()="Id" or local-name()="UserId" or local-name()="SellerId"]');
 		if (!$id_nodes instanceof DOMNodeList || $id_nodes->length === 0) {
 			return ['ok' => false, 'message' => 'Could not resolve seller id from alias'];
 		}
 
-		$seller_id = (int) trim((string) $id_nodes->item(0)->textContent);
+		$resolved_id = 0;
+		foreach ($id_nodes as $id_node) {
+			$candidate = (int) trim((string) $id_node->textContent);
+			if ($candidate > 0) {
+				$resolved_id = $candidate;
+				break;
+			}
+		}
+		$seller_id = $resolved_id;
 		if ($seller_id <= 0) {
 			return ['ok' => false, 'message' => 'Resolved seller id is invalid'];
 		}
