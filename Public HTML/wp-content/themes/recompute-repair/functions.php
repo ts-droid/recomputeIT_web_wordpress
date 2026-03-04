@@ -1150,7 +1150,8 @@ function recompute_tradera_soap_call(string $method, string $method_xml): array
 		. '</AuthenticationHeader>'
 		. '<ConfigurationHeader xmlns="http://api.tradera.com">'
 		. '<Sandbox>' . ($sandbox ? 'true' : 'false') . '</Sandbox>'
-		. '<MaxResultAge>0</MaxResultAge>'
+		// MaxResultAge is a .NET TimeSpan in hh:mm:ss format.
+		. '<MaxResultAge>00:00:00</MaxResultAge>'
 		. '</ConfigurationHeader>'
 		. '</soap:Header>'
 		. '<soap:Body>' . $method_xml . '</soap:Body>'
