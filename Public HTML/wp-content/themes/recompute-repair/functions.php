@@ -1149,9 +1149,9 @@ function recompute_tradera_soap_call(string $method, string $method_xml): array
 		. '<AppKey>' . recompute_tradera_xml_escape($app_key) . '</AppKey>'
 		. '</AuthenticationHeader>'
 		. '<ConfigurationHeader xmlns="http://api.tradera.com">'
-		. '<Sandbox>' . ($sandbox ? 'true' : 'false') . '</Sandbox>'
-		// MaxResultAge is a .NET TimeSpan in hh:mm:ss format.
-		. '<MaxResultAge>00:00:00</MaxResultAge>'
+		// Tradera expects integer values for these fields.
+		. '<Sandbox>' . ($sandbox ? '1' : '0') . '</Sandbox>'
+		. '<MaxResultAge>0</MaxResultAge>'
 		. '</ConfigurationHeader>'
 		. '</soap:Header>'
 		. '<soap:Body>' . $method_xml . '</soap:Body>'
