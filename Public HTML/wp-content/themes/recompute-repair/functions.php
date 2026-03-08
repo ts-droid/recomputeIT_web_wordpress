@@ -1253,15 +1253,15 @@ function recompute_tradera_fetch_items_from_api(): array
 		update_option($cached_key, $seller_id, false);
 	}
 
+	// Official v3 signature:
+	// GetSellerItems(userId, categoryId, filterType, minEndDate, maxEndDate)
+	// filterType: 0=All, 1=Active, 2=Inactive
 	$items_xml = '<GetSellerItems xmlns="http://api.tradera.com">'
-		. '<sellerId>' . $seller_id . '</sellerId>'
-		. '<pageNumber>1</pageNumber>'
-		. '<itemsPerPage>100</itemsPerPage>'
+		. '<userId>' . $seller_id . '</userId>'
 		. '<categoryId>0</categoryId>'
-		. '<itemType>All</itemType>'
-		. '<filterActive>Active</filterActive>'
-		. '<sortBy>EndDate</sortBy>'
-		. '<sortDirection>Ascending</sortDirection>'
+		. '<filterType>1</filterType>'
+		. '<minEndDate>0001-01-01T00:00:00</minEndDate>'
+		. '<maxEndDate>9999-12-31T00:00:00</maxEndDate>'
 		. '</GetSellerItems>';
 	$items_call = recompute_tradera_soap_call('GetSellerItems', $items_xml);
 	if (empty($items_call['ok'])) {
