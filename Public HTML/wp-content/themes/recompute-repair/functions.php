@@ -663,12 +663,71 @@ function recompute_extract_json_object(string $content): string
 	return $trimmed;
 }
 
+function recompute_translation_locked_terms(): array
+{
+	return [
+		're:Compute-IT',
+		'Recompute-IT',
+		'Recompute IT',
+		'recompute.it',
+		'Tradera',
+	];
+}
+
+function recompute_protect_locked_terms(array $texts): array
+{
+	$terms = recompute_translation_locked_terms();
+	usort($terms, static function (string $a, string $b): int {
+		return strlen($b) <=> strlen($a);
+	});
+
+	$protected = [];
+	$maps = [];
+
+	foreach ($texts as $text) {
+		$value = is_scalar($text) ? (string) $text : '';
+		$map = [];
+
+		foreach ($terms as $idx => $term) {
+			if ($term === '' || !str_contains($value, $term)) {
+				continue;
+			}
+			$placeholder = '__BRAND_LOCK_' . $idx . '__';
+			$value = str_replace($term, $placeholder, $value);
+			$map[$placeholder] = $term;
+		}
+
+		$protected[] = $value;
+		$maps[] = $map;
+	}
+
+	return [$protected, $maps];
+}
+
+function recompute_restore_locked_terms(array $texts, array $maps): array
+{
+	$restored = [];
+
+	foreach ($texts as $idx => $text) {
+		$value = is_scalar($text) ? (string) $text : '';
+		$map = isset($maps[$idx]) && is_array($maps[$idx]) ? $maps[$idx] : [];
+		if (!empty($map)) {
+			$value = str_replace(array_keys($map), array_values($map), $value);
+		}
+		$restored[] = $value;
+	}
+
+	return $restored;
+}
+
 function recompute_openai_translate_batch(array $texts, string $target_lang_name): array
 {
 	$api_key = recompute_openai_api_key();
 	if ($api_key === '') {
 		return [];
 	}
+
+	[$texts_for_translation, $locked_maps] = recompute_protect_locked_terms(array_values($texts));
 
 	$payload = [
 		'model' => recompute_openai_model(),
@@ -677,14 +736,14 @@ function recompute_openai_translate_batch(array $texts, string $target_lang_name
 		'messages' => [
 			[
 				'role' => 'system',
-				'content' => 'You are a translation engine. Translate Swedish text to the requested target language. Return only valid minified JSON with this schema: {"translations":["..."]}. Keep order and length identical to input.',
+				'content' => 'You are a translation engine. Translate Swedish text to the requested target language. Never translate or modify placeholders in the form __BRAND_LOCK_N__. Return only valid minified JSON with this schema: {"translations":["..."]}. Keep order and length identical to input.',
 			],
 			[
 				'role' => 'user',
 				'content' => wp_json_encode([
 					'source_language' => 'Swedish',
 					'target_language' => $target_lang_name,
-					'texts' => array_values($texts),
+					'texts' => $texts_for_translation,
 				], JSON_UNESCAPED_UNICODE),
 			],
 		],
@@ -726,7 +785,7 @@ function recompute_openai_translate_batch(array $texts, string $target_lang_name
 		}
 	}
 
-	return $out;
+	return recompute_restore_locked_terms($out, $locked_maps);
 }
 
 function recompute_run_auto_translation(): array
