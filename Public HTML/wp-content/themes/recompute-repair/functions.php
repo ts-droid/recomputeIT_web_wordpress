@@ -1202,6 +1202,16 @@ function recompute_tradera_fetch_items_from_api(): array
 	}
 
 	$configured_seller_id = defined('RECOMPUTE_TRADERA_SELLER_ID') ? (int) RECOMPUTE_TRADERA_SELLER_ID : 0;
+	$legacy_alias_defaults = [
+		// Found in previous static build profile URL: /profile/items/4863360/recomputeitnordic
+		'recomputeitnordic' => 4863360,
+	];
+	if ($configured_seller_id <= 0) {
+		$alias_key = strtolower($alias);
+		if (isset($legacy_alias_defaults[$alias_key])) {
+			$configured_seller_id = (int) $legacy_alias_defaults[$alias_key];
+		}
+	}
 	if ($configured_seller_id > 0) {
 		$seller_id = $configured_seller_id;
 	} else {
