@@ -1292,9 +1292,20 @@ function recompute_tradera_fetch_items_from_api(): array
 		return ['ok' => false, 'message' => $fault !== '' ? $fault : 'SOAP Fault'];
 	}
 
-	$item_nodes = $xpath->query('//*[local-name()="GetSellerItemsResult"]//*[local-name()="Item"]');
+	$item_paths = [
+		'//*[local-name()="GetSellerItemsResult"]//*[local-name()="Item"]',
+		'//*[local-name()="GetSellerItemsResult"]//*[local-name()="SellerItem"]',
+		'//*[local-name()="GetSellerItemsResult"]//*[local-name()="Auction"]',
+		'//*[local-name()="GetSellerItemsResult"]//*[local-name()="Listing"]',
+	];
 	$items = [];
-	if ($item_nodes instanceof DOMNodeList) {
+	$raw_item_node_count = 0;
+	foreach ($item_paths as $path) {
+		$item_nodes = $xpath->query($path);
+		if (!$item_nodes instanceof DOMNodeList || $item_nodes->length === 0) {
+			continue;
+		}
+		$raw_item_node_count += (int) $item_nodes->length;
 		foreach ($item_nodes as $node) {
 			$title = recompute_tradera_xpath_text($xpath, $node, 'ShortDescription');
 			if ($title === '') {
@@ -1320,16 +1331,22 @@ function recompute_tradera_fetch_items_from_api(): array
 				'openingBid' => recompute_tradera_xpath_text($xpath, $node, 'OpeningBid'),
 			];
 		}
+		// Prefer first matching path shape.
+		if (!empty($items)) {
+			break;
+		}
 	}
 
 	return [
 		'ok' => true,
 		'alias' => $alias,
+		'sellerIdUsed' => $seller_id,
+		'rawItemNodeCount' => $raw_item_node_count,
 		'items' => $items,
 	];
 }
 
-function recompute_sync_tradera_json(bool $force = false): array
+function recompute_sync_tradera_json(bool $force = false, bool $debug = false): array
 {
 	$lock_key = 'recompute_tradera_sync_lock';
 	if (!$force && get_transient($lock_key)) {
@@ -1369,6 +1386,13 @@ function recompute_sync_tradera_json(bool $force = false): array
 			];
 			$result = recompute_tradera_write_document($document);
 			$result['source'] = 'tradera_api';
+			if ($debug) {
+				$result['debug'] = [
+					'alias' => (string) ($api_result['alias'] ?? ''),
+					'sellerIdUsed' => (int) ($api_result['sellerIdUsed'] ?? 0),
+					'rawItemNodeCount' => (int) ($api_result['rawItemNodeCount'] ?? 0),
+				];
+			}
 			return $result;
 		}
 		// If API fails and a source URL is configured, fall back to source URL.
@@ -1472,7 +1496,8 @@ add_action('rest_api_init', static function (): void {
 		},
 		'callback' => static function (WP_REST_Request $request): WP_REST_Response {
 			$force = (string) $request->get_param('force') === '1';
-			$result = recompute_sync_tradera_json($force);
+			$debug = (string) $request->get_param('debug') === '1';
+			$result = recompute_sync_tradera_json($force, $debug);
 			if (empty($result['ok'])) {
 				return new WP_REST_Response($result, 500);
 			}
