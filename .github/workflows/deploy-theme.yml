@@ -28,20 +28,27 @@ jobs:
       - name: Deploy theme via rsync
         shell: bash
         run: |
-          if [ -z "${{ secrets.HOSTINGER_THEME_PATH }}" ]; then
+          HOSTINGER_HOST="$(printf '%s' '${{ secrets.HOSTINGER_HOST }}' | tr -d '\r' | xargs)"
+          HOSTINGER_PORT="$(printf '%s' '${{ secrets.HOSTINGER_PORT }}' | tr -d '\r' | xargs)"
+          HOSTINGER_USER="$(printf '%s' '${{ secrets.HOSTINGER_USER }}' | tr -d '\r' | xargs)"
+          HOSTINGER_THEME_PATH="$(printf '%s' '${{ secrets.HOSTINGER_THEME_PATH }}' | tr -d '\r' | sed 's/[[:space:]]*$//')"
+
+          if [ -z "$HOSTINGER_THEME_PATH" ]; then
             echo "Missing secret: HOSTINGER_THEME_PATH"
             exit 1
           fi
+          if [ -z "$HOSTINGER_HOST" ] || [ -z "$HOSTINGER_PORT" ] || [ -z "$HOSTINGER_USER" ]; then
+            echo "Missing one of HOSTINGER_HOST / HOSTINGER_PORT / HOSTINGER_USER"
+            exit 1
+          fi
 
-          ssh -p "${{ secrets.HOSTINGER_PORT }}" \
+          ssh -p "$HOSTINGER_PORT" \
             -i ~/.ssh/id_ed25519 \
             -o IdentitiesOnly=yes \
             -o BatchMode=yes \
             -o ConnectTimeout=15 \
-            "${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}" \
-            "mkdir -p '${{ secrets.HOSTINGER_THEME_PATH }}'"
+            "$HOSTINGER_USER@$HOSTINGER_HOST" \
+            "mkdir -p '$HOSTINGER_THEME_PATH'"
 
-          rsync -az --delete --timeout=60 \
-            -e "ssh -p ${{ secrets.HOSTINGER_PORT }} -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3" \
-            "Public HTML/wp-content/themes/recompute-repair/" \
-            "${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:${{ secrets.HOSTINGER_THEME_PATH }}/"
+          RSYNC_SSH="ssh -p $HOSTINGER_PORT -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
+          rsync -az --delete --timeout=60 -e "$RSYNC_SSH" "Public HTML/wp-content/themes/recompute-repair/" "$HOSTINGER_USER@$HOSTINGER_HOST:$HOSTINGER_THEME_PATH/"
