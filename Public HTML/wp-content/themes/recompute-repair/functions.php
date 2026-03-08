@@ -834,6 +834,8 @@ function recompute_render_cms_page(): void
 	$option_data = recompute_cms_translations();
 	$lang_defaults = $defaults[$selected_lang] ?? ($defaults['en'] ?? []);
 	$current = array_merge($lang_defaults, $option_data[$selected_lang] ?? []);
+	$current_instagram_profile_url = recompute_instagram_profile_url();
+	$current_instagram_shortcode = recompute_instagram_shortcode();
 
 	if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['recompute_cms_nonce'])) {
 		if (wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['recompute_cms_nonce'])), 'recompute_cms_save')) {
@@ -848,6 +850,20 @@ function recompute_render_cms_page(): void
 			$option_data[$selected_lang] = $sanitized;
 			update_option('recompute_cms_translations', $option_data, false);
 			$current = array_merge($lang_defaults, $sanitized);
+
+			$instagram_profile_submitted = isset($_POST['instagram_profile_url']) ? (string) wp_unslash($_POST['instagram_profile_url']) : '';
+			$instagram_shortcode_submitted = isset($_POST['instagram_shortcode']) ? (string) wp_unslash($_POST['instagram_shortcode']) : '';
+			$instagram_profile_sanitized = esc_url_raw(trim($instagram_profile_submitted));
+			$instagram_shortcode_sanitized = sanitize_text_field($instagram_shortcode_submitted);
+
+			if ($instagram_profile_sanitized === '') {
+				$instagram_profile_sanitized = 'https://www.instagram.com/recomputeitnordic/';
+			}
+
+			set_theme_mod('recompute_instagram_profile_url', $instagram_profile_sanitized);
+			set_theme_mod('recompute_instagram_shortcode', $instagram_shortcode_sanitized);
+			$current_instagram_profile_url = $instagram_profile_sanitized;
+			$current_instagram_shortcode = $instagram_shortcode_sanitized;
 
 			if ($selected_lang === 'sv') {
 				$result = recompute_run_auto_translation();
@@ -887,6 +903,19 @@ function recompute_render_cms_page(): void
 
 	echo '<form method="post">';
 	wp_nonce_field('recompute_cms_save', 'recompute_cms_nonce');
+	echo '<h2 style="margin-top:6px;">' . esc_html__('Social', 'recompute-repair') . '</h2>';
+	echo '<table class="form-table" role="presentation">';
+	echo '<tr>';
+	echo '<th scope="row"><label for="instagram_profile_url">' . esc_html__('Instagram profile URL', 'recompute-repair') . '</label></th>';
+	echo '<td><input id="instagram_profile_url" name="instagram_profile_url" type="url" class="regular-text" value="' . esc_attr($current_instagram_profile_url) . '"></td>';
+	echo '</tr>';
+	echo '<tr>';
+	echo '<th scope="row"><label for="instagram_shortcode">' . esc_html__('Instagram feed shortcode', 'recompute-repair') . '</label></th>';
+	echo '<td><input id="instagram_shortcode" name="instagram_shortcode" type="text" class="regular-text" value="' . esc_attr($current_instagram_shortcode) . '">';
+	echo '<p class="description">' . esc_html__('Example: [instagram-feed feed=1]', 'recompute-repair') . '</p></td>';
+	echo '</tr>';
+	echo '</table>';
+	echo '<h2 style="margin-top:16px;">' . esc_html__('Language Content', 'recompute-repair') . '</h2>';
 	echo '<table class="form-table" role="presentation">';
 	$hidden_keys = recompute_hidden_cms_keys();
 	foreach ($lang_defaults as $key => $default_value) {
