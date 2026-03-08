@@ -1079,7 +1079,13 @@ function recompute_instagram_profile_url(): string
 
 function recompute_instagram_shortcode(): string
 {
-	return trim((string) get_theme_mod('recompute_instagram_shortcode', ''));
+	$shortcode = trim((string) get_theme_mod('recompute_instagram_shortcode', ''));
+	if ($shortcode !== '') {
+		return $shortcode;
+	}
+
+	// Sensible default for Smash Balloon to render latest 6 if connected.
+	return '[instagram-feed num=6 cols=3 showheader=false showbutton=false showfollow=false]';
 }
 
 add_action('wp_enqueue_scripts', function () {

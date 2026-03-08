@@ -113,14 +113,18 @@ get_header();
 			<div class="instagram-feed-wrap">
 				<?php
 				$instagram_shortcode = recompute_instagram_shortcode();
+				$instagram_rendered = '';
 				if ($instagram_shortcode !== '') {
-					echo do_shortcode($instagram_shortcode); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				} else {
+					$instagram_rendered = do_shortcode($instagram_shortcode);
+					if (trim(wp_strip_all_tags((string) $instagram_rendered)) !== '') {
+						echo $instagram_rendered; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					}
+				}
+
+				if (empty($instagram_rendered) || trim(wp_strip_all_tags((string) $instagram_rendered)) === '') {
 					$instagram_profile = recompute_instagram_profile_url();
-					?>
-					<p>Ingen Instagram-feed är kopplad ännu.</p>
-					<p><a class="cta ghost" href="<?php echo esc_url($instagram_profile); ?>" target="_blank" rel="noopener">Öppna vår Instagram</a></p>
-					<?php
+					echo '<p>Ingen Instagram-feed är kopplad ännu.</p>';
+					echo '<p><a class="cta ghost" href="' . esc_url($instagram_profile) . '" target="_blank" rel="noopener">Öppna vår Instagram</a></p>';
 				}
 				?>
 			</div>
