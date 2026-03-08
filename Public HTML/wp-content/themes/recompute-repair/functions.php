@@ -528,11 +528,6 @@ function recompute_current_lang(): string
 		return 'sv';
 	}
 
-	$locale = determine_locale();
-	if (str_starts_with($locale, 'en')) {
-		return 'en';
-	}
-
 	return 'sv';
 }
 
