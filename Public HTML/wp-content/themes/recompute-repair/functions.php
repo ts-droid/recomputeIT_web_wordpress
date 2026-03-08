@@ -983,18 +983,23 @@ function recompute_tradera_logo_url(): string
 }
 
 add_action('wp_enqueue_scripts', function () {
+	$css_path = get_template_directory() . '/assets/theme.css';
+	$js_path = get_template_directory() . '/assets/theme.js';
+	$css_ver = file_exists($css_path) ? (string) filemtime($css_path) : '1.0.0';
+	$js_ver = file_exists($js_path) ? (string) filemtime($js_path) : '1.0.0';
+
 	wp_enqueue_style(
 		'recompute-repair-main',
 		get_template_directory_uri() . '/assets/theme.css',
 		[],
-		'1.0.0'
+		$css_ver
 	);
 
 	wp_enqueue_script(
 		'recompute-repair-main',
 		get_template_directory_uri() . '/assets/theme.js',
 		[],
-		'1.0.0',
+		$js_ver,
 		true
 	);
 
