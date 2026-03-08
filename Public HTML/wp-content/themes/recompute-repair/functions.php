@@ -1052,6 +1052,7 @@ function recompute_tradera_min_interval_seconds(): int
 function recompute_normalize_tradera_items(array $items): array
 {
 	$normalized = [];
+	$seen_ids = [];
 	foreach ($items as $item) {
 		if (!is_array($item)) {
 			continue;
@@ -1065,8 +1066,16 @@ function recompute_normalize_tradera_items(array $items): array
 		$end_date = (string) ($item['endDate'] ?? $item['end_date'] ?? $item['endsAt'] ?? '');
 		$item_link = (string) ($item['itemLink'] ?? $item['url'] ?? $item['link'] ?? '');
 
+		$id = (string) ($item['id'] ?? '');
+		if ($id !== '') {
+			if (isset($seen_ids[$id])) {
+				continue;
+			}
+			$seen_ids[$id] = true;
+		}
+
 		$normalized[] = [
-			'id' => (string) ($item['id'] ?? ''),
+			'id' => $id,
 			'title' => $title,
 			'itemLink' => $item_link,
 			'thumbnail' => (string) ($item['thumbnail'] ?? $item['thumb'] ?? ''),
@@ -1084,7 +1093,13 @@ function recompute_normalize_tradera_items(array $items): array
 		return $at <=> $bt;
 	});
 
-	return $normalized;
+	$now = time();
+	$active = array_values(array_filter($normalized, static function (array $item) use ($now): bool {
+		$end_ts = strtotime((string) ($item['endDate'] ?? '')) ?: 0;
+		return $end_ts > $now;
+	}));
+
+	return $active;
 }
 
 function recompute_tradera_write_document(array $document): array
