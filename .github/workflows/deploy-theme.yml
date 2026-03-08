@@ -28,6 +28,19 @@ jobs:
       - name: Deploy theme via rsync
         shell: bash
         run: |
+          if [ -z "${{ secrets.HOSTINGER_THEME_PATH }}" ]; then
+            echo "Missing secret: HOSTINGER_THEME_PATH"
+            exit 1
+          fi
+
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" \
+            -i ~/.ssh/id_ed25519 \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            "${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}" \
+            "mkdir -p '${{ secrets.HOSTINGER_THEME_PATH }}'"
+
           rsync -az --delete --timeout=60 \
             -e "ssh -p ${{ secrets.HOSTINGER_PORT }} -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3" \
             "Public HTML/wp-content/themes/recompute-repair/" \
