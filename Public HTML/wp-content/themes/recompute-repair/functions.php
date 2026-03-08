@@ -503,8 +503,29 @@ function recompute_current_lang(): string
 	if (isset($_GET['lang'])) {
 		$lang = sanitize_key(wp_unslash($_GET['lang']));
 		if (in_array($lang, $supported, true)) {
+			if (!headers_sent()) {
+				setcookie('recompute_lang', $lang, [
+					'expires' => time() + YEAR_IN_SECONDS,
+					'path' => COOKIEPATH ?: '/',
+					'secure' => is_ssl(),
+					'httponly' => false,
+					'samesite' => 'Lax',
+				]);
+			}
 			return $lang;
 		}
+	}
+
+	if (isset($_COOKIE['recompute_lang'])) {
+		$lang = sanitize_key(wp_unslash((string) $_COOKIE['recompute_lang']));
+		if (in_array($lang, $supported, true)) {
+			return $lang;
+		}
+	}
+
+	$country = recompute_request_country_code();
+	if ($country === 'SE') {
+		return 'sv';
 	}
 
 	$locale = determine_locale();
@@ -513,6 +534,28 @@ function recompute_current_lang(): string
 	}
 
 	return 'sv';
+}
+
+function recompute_request_country_code(): string
+{
+	$candidates = [
+		'HTTP_CF_IPCOUNTRY',      // Cloudflare
+		'GEOIP_COUNTRY_CODE',     // GeoIP module
+		'HTTP_X_COUNTRY_CODE',    // Proxy/CDN custom header
+		'HTTP_X_APPENGINE_COUNTRY', // App Engine style header
+	];
+
+	foreach ($candidates as $key) {
+		if (!isset($_SERVER[$key])) {
+			continue;
+		}
+		$value = strtoupper(trim((string) $_SERVER[$key]));
+		if (preg_match('/^[A-Z]{2}$/', $value)) {
+			return $value;
+		}
+	}
+
+	return '';
 }
 
 function recompute_lang_url(string $lang): string
