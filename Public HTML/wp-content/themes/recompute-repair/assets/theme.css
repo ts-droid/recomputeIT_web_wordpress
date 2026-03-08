@@ -387,13 +387,13 @@ h3 {
 	justify-content: center;
 }
 
-.section-facebook {
+.section-instagram {
 	background: linear-gradient(180deg, rgba(11, 17, 26, 0.92), rgba(8, 13, 20, 0.96));
 	border-top: 1px solid rgba(255, 255, 255, 0.08);
 	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.facebook-frame-wrap {
+.instagram-feed-wrap {
 	max-width: 560px;
 	margin: 0 auto;
 	padding: 0.9rem;
@@ -402,7 +402,7 @@ h3 {
 	border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.facebook-frame-wrap iframe {
+.instagram-feed-wrap iframe {
 	display: block;
 	width: 100%;
 	max-width: 500px;

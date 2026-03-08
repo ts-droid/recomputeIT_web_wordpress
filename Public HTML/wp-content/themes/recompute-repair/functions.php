@@ -965,14 +965,25 @@ add_action('customize_register', function ($wp_customize) {
 		'section' => 'recompute_branding',
 	]));
 
-	$wp_customize->add_setting('recompute_facebook_page_url', [
-		'default' => 'https://www.facebook.com/recomputeitnordic',
+	$wp_customize->add_setting('recompute_instagram_profile_url', [
+		'default' => 'https://www.instagram.com/recomputeitnordic/',
 		'sanitize_callback' => 'esc_url_raw',
 	]);
-	$wp_customize->add_control('recompute_facebook_page_url', [
-		'label' => __('Facebook page URL', 'recompute-repair'),
+	$wp_customize->add_control('recompute_instagram_profile_url', [
+		'label' => __('Instagram profile URL', 'recompute-repair'),
 		'section' => 'recompute_branding',
 		'type' => 'url',
+	]);
+
+	$wp_customize->add_setting('recompute_instagram_shortcode', [
+		'default' => '',
+		'sanitize_callback' => 'sanitize_text_field',
+	]);
+	$wp_customize->add_control('recompute_instagram_shortcode', [
+		'label' => __('Instagram feed shortcode', 'recompute-repair'),
+		'description' => __('Example: [instagram-feed feed=1]', 'recompute-repair'),
+		'section' => 'recompute_branding',
+		'type' => 'text',
 	]);
 });
 
@@ -1035,18 +1046,16 @@ function recompute_tradera_logo_url(): string
 	return home_url('/images/marketing/tradera-symbol-black.png');
 }
 
-function recompute_facebook_page_url(): string
+function recompute_instagram_profile_url(): string
 {
-	$url = (string) get_theme_mod('recompute_facebook_page_url', 'https://www.facebook.com/recomputeitnordic');
+	$url = (string) get_theme_mod('recompute_instagram_profile_url', 'https://www.instagram.com/recomputeitnordic/');
 	$url = trim($url);
-	return $url !== '' ? $url : 'https://www.facebook.com/recomputeitnordic';
+	return $url !== '' ? $url : 'https://www.instagram.com/recomputeitnordic/';
 }
 
-function recompute_facebook_plugin_url(): string
+function recompute_instagram_shortcode(): string
 {
-	$href = rawurlencode(recompute_facebook_page_url());
-	return 'https://www.facebook.com/plugins/page.php?href=' . $href .
-		'&tabs=timeline&width=500&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true';
+	return trim((string) get_theme_mod('recompute_instagram_shortcode', ''));
 }
 
 add_action('wp_enqueue_scripts', function () {

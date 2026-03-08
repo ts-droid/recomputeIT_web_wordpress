@@ -102,25 +102,27 @@ get_header();
 		</div>
 	</section>
 
-	<section class="section section-facebook" id="facebook">
+	<section class="section section-instagram" id="instagram">
 		<div class="container">
 			<div class="heading-row">
 				<div>
-					<p class="eyebrow">FACEBOOK</p>
-					<h2>Senaste uppdateringar</h2>
+					<p class="eyebrow">INSTAGRAM</p>
+					<h2>Senaste från Instagram</h2>
 				</div>
 			</div>
-			<div class="facebook-frame-wrap">
-				<iframe
-					title="Recompute IT Nordic Facebook"
-					src="<?php echo esc_url(recompute_facebook_plugin_url()); ?>"
-					width="500"
-					height="620"
-					style="border:none;overflow:hidden"
-					scrolling="no"
-					frameborder="0"
-					allowfullscreen="true"
-					allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+			<div class="instagram-feed-wrap">
+				<?php
+				$instagram_shortcode = recompute_instagram_shortcode();
+				if ($instagram_shortcode !== '') {
+					echo do_shortcode($instagram_shortcode); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				} else {
+					$instagram_profile = recompute_instagram_profile_url();
+					?>
+					<p>Ingen Instagram-feed är kopplad ännu.</p>
+					<p><a class="cta ghost" href="<?php echo esc_url($instagram_profile); ?>" target="_blank" rel="noopener">Öppna vår Instagram</a></p>
+					<?php
+				}
+				?>
 			</div>
 		</div>
 	</section>
