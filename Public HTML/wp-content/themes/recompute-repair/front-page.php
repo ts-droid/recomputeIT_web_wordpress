@@ -101,5 +101,28 @@ get_header();
 			</div>
 		</div>
 	</section>
+
+	<section class="section section-facebook" id="facebook">
+		<div class="container">
+			<div class="heading-row">
+				<div>
+					<p class="eyebrow">FACEBOOK</p>
+					<h2>Senaste uppdateringar</h2>
+				</div>
+			</div>
+			<div class="facebook-frame-wrap">
+				<iframe
+					title="Recompute IT Nordic Facebook"
+					src="<?php echo esc_url(recompute_facebook_plugin_url()); ?>"
+					width="500"
+					height="620"
+					style="border:none;overflow:hidden"
+					scrolling="no"
+					frameborder="0"
+					allowfullscreen="true"
+					allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+			</div>
+		</div>
+	</section>
 </main>
 <?php get_footer(); ?>
