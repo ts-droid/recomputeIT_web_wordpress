@@ -106,8 +106,8 @@ get_header();
 		<div class="container">
 			<div class="heading-row">
 				<div>
-					<p class="eyebrow">INSTAGRAM</p>
-					<h2>Senaste från Instagram</h2>
+					<p class="eyebrow"><?php echo esc_html(recompute_copy('instagram_eyebrow')); ?></p>
+					<h2><?php echo esc_html(recompute_copy('instagram_title')); ?></h2>
 				</div>
 			</div>
 			<div class="instagram-feed-wrap">
@@ -123,8 +123,8 @@ get_header();
 
 				if (empty($instagram_rendered) || trim(wp_strip_all_tags((string) $instagram_rendered)) === '') {
 					$instagram_profile = recompute_instagram_profile_url();
-					echo '<p>Ingen Instagram-feed är kopplad ännu.</p>';
-					echo '<p><a class="cta ghost" href="' . esc_url($instagram_profile) . '" target="_blank" rel="noopener">Öppna vår Instagram</a></p>';
+					echo '<p>' . esc_html(recompute_copy('instagram_fallback_empty')) . '</p>';
+					echo '<p><a class="cta ghost" href="' . esc_url($instagram_profile) . '" target="_blank" rel="noopener">' . esc_html(recompute_copy('instagram_open_profile')) . '</a></p>';
 				}
 				?>
 			</div>
